@@ -1,0 +1,25 @@
+# Build output
+bin/
+obj/
+artifacts/
+*.user
+*.suo
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# Test results
+TestResults/
+[Tt]est[Rr]esults/
+
+# Local OrbMet data. The real root is %LOCALAPPDATA%\OrbMet, never the repo;
+# these entries only guard against accidental copies landing here.
+captures/
+backups/
+logs/
+
+# OS noise
+Thumbs.db
+Desktop.ini

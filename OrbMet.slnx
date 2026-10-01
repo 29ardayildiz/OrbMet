@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OrbMet.Capture/OrbMet.Capture.csproj" />
+    <Project Path="src/OrbMet.Core/OrbMet.Core.csproj" />
+    <Project Path="src/OrbMet.Desktop/OrbMet.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OrbMet.Core.Tests/OrbMet.Core.Tests.csproj" />
+  </Folder>
+</Solution>
