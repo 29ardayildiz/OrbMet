@@ -1,35 +1,50 @@
-﻿namespace OrbMet.Capture;
+﻿using OrbMet.Core.Providers.Claude;
+using OrbMet.Core.Storage;
+
+namespace OrbMet.Capture;
 
 internal static class Program
 {
     private const int MaxInputBytes = 256 * 1024;
 
-    private static int Main()
+    private static async Task<int> Main()
     {
-        // Stage 0 skeleton only. Consumes stdin within a fixed bound and writes
-        // nothing to stdout, so a chained status line still owns the terminal.
-        // Parsing and atomic usage capture arrive in stage 2.
+        // This helper runs after every Claude response, inside the user's
+        // terminal. Anything unexpected is swallowed: a status line that errors
+        // out or hangs is far worse than one that says nothing.
         try
         {
-            using var stdin = Console.OpenStandardInput();
-            var buffer = new byte[8192];
-            var total = 0;
+            var input = await ReadInputAsync(MaxInputBytes).ConfigureAwait(false);
 
-            int read;
-            while ((read = stdin.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                total += read;
-                if (total >= MaxInputBytes)
-                {
-                    break;
-                }
-            }
+            var paths = OrbMetPaths.FromEnvironment();
+            var runner = new ClaudeStatusLineRunner(
+                new ClaudeCaptureStore(paths.ClaudeCapturesDirectory),
+                new ClaudeIntegrationRecordStore(paths.ClaudeIntegrationFile));
+
+            using var stdout = Console.OpenStandardOutput();
+            await runner.RunAsync(input, stdout, CancellationToken.None).ConfigureAwait(false);
         }
-        catch (IOException)
+        catch (Exception)
         {
-            // EOF and closed pipes are normal termination paths, not crashes.
         }
 
         return 0;
+    }
+
+    private static async Task<byte[]> ReadInputAsync(int maxBytes)
+    {
+        using var stdin = Console.OpenStandardInput();
+        using var buffer = new MemoryStream();
+        var chunk = new byte[8192];
+
+        int read;
+        while (buffer.Length < maxBytes &&
+               (read = await stdin.ReadAsync(chunk).ConfigureAwait(false)) > 0)
+        {
+            var take = (int)Math.Min(read, maxBytes - buffer.Length);
+            buffer.Write(chunk, 0, take);
+        }
+
+        return buffer.ToArray();
     }
 }
