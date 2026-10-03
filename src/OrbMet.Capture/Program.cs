@@ -19,7 +19,8 @@ internal static class Program
             var paths = OrbMetPaths.FromEnvironment();
             var runner = new ClaudeStatusLineRunner(
                 new ClaudeCaptureStore(paths.ClaudeCapturesDirectory),
-                new ClaudeIntegrationRecordStore(paths.ClaudeIntegrationFile));
+                new ClaudeIntegrationRecordStore(paths.ClaudeIntegrationFile),
+                diagnosticsDirectory: paths.LogsDirectory);
 
             using var stdout = Console.OpenStandardOutput();
             await runner.RunAsync(input, stdout, CancellationToken.None).ConfigureAwait(false);

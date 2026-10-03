@@ -33,7 +33,7 @@ public class ClaudeStatusLineIntegrationTests
         var statusLine = (JsonObject)Settings(temp)["statusLine"]!;
         Assert.Equal("command", statusLine["type"]!.GetValue<string>());
         Assert.Equal(
-            "\"C:\\OrbMet\\OrbMet.Capture.exe\" --statusline",
+            "\"C:/OrbMet/OrbMet.Capture.exe\" --statusline",
             statusLine["command"]!.GetValue<string>());
         Assert.True(File.Exists(temp.Combine("data", "integrations", "claude.json")));
         Assert.True(integration.GetState().Connected);

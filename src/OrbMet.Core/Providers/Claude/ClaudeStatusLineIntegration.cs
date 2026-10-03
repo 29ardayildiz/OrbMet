@@ -234,10 +234,16 @@ public sealed class ClaudeStatusLineIntegration
     public static bool IsOrbMetCommand(string? command) =>
         command is not null && command.Contains(CaptureArgument, StringComparison.Ordinal);
 
-    private string BuildCommand() =>
-        string.IsNullOrWhiteSpace(_captureArguments)
-            ? $"\"{_captureExecutablePath}\""
-            : $"\"{_captureExecutablePath}\" {_captureArguments}";
+    private string BuildCommand()
+    {
+        // Claude Code runs status line commands through Git Bash when it is
+        // installed, and Git Bash eats unquoted backslashes in a Windows path.
+        // The documented fix is forward slashes, which also work in PowerShell.
+        var executable = _captureExecutablePath.Replace('\\', '/');
+        return string.IsNullOrWhiteSpace(_captureArguments)
+            ? $"\"{executable}\""
+            : $"\"{executable}\" {_captureArguments}";
+    }
 
     private bool UnchangedSince(byte[]? original)
     {

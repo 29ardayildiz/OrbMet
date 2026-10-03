@@ -19,19 +19,22 @@ public sealed class ClaudeStatusLineRunner
     private readonly IStatusLineChainRunner _chainRunner;
     private readonly Func<DateTimeOffset> _clock;
     private readonly TimeSpan _chainTimeout;
+    private readonly string? _diagnosticsDirectory;
 
     public ClaudeStatusLineRunner(
         ClaudeCaptureStore captureStore,
         ClaudeIntegrationRecordStore integrationStore,
         IStatusLineChainRunner? chainRunner = null,
         Func<DateTimeOffset>? clock = null,
-        TimeSpan? chainTimeout = null)
+        TimeSpan? chainTimeout = null,
+        string? diagnosticsDirectory = null)
     {
         _captureStore = captureStore ?? throw new ArgumentNullException(nameof(captureStore));
         _integrationStore = integrationStore ?? throw new ArgumentNullException(nameof(integrationStore));
         _chainRunner = chainRunner ?? new WindowsStatusLineChainRunner();
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _chainTimeout = chainTimeout ?? TimeSpan.FromSeconds(2);
+        _diagnosticsDirectory = diagnosticsDirectory;
     }
 
     public async Task RunAsync(ReadOnlyMemory<byte> input, Stream output, CancellationToken cancellationToken)
@@ -41,11 +44,10 @@ public sealed class ClaudeStatusLineRunner
         var bytes = input.ToArray();
         var text = Decode(bytes);
 
-        var record = ClaudeStatusLineParser.Parse(text, _clock());
-        if (record is not null)
-        {
-            TrySave(record);
-        }
+        var ranAtUtc = _clock();
+        var record = ClaudeStatusLineParser.Parse(text, ranAtUtc, out var info);
+        var captureSaved = record is not null && TrySave(record);
+        WriteDiagnostics(ranAtUtc, bytes.Length, info, captureSaved);
 
         var previous = ReadPreviousCommand();
         if (!string.IsNullOrWhiteSpace(previous) && !ClaudeStatusLineIntegration.IsOrbMetCommand(previous))
@@ -64,20 +66,52 @@ public sealed class ClaudeStatusLineRunner
         await WriteAsync(output, DefaultStatusLine.Build(record), cancellationToken).ConfigureAwait(false);
     }
 
-    private void TrySave(ClaudeCaptureRecord record)
+    private bool TrySave(ClaudeCaptureRecord record)
     {
         try
         {
             _captureStore.Save(record);
+            return true;
         }
         catch (IOException)
         {
             // A failed capture write must not break the user's terminal.
+            return false;
         }
         catch (UnauthorizedAccessException)
         {
+            return false;
         }
         catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private void WriteDiagnostics(
+        DateTimeOffset ranAtUtc,
+        int inputBytes,
+        ClaudeStatusLineParseInfo info,
+        bool captureSaved)
+    {
+        if (string.IsNullOrWhiteSpace(_diagnosticsDirectory))
+        {
+            return;
+        }
+
+        try
+        {
+            ClaudeStatusLineDiagnostics.Write(
+                _diagnosticsDirectory!,
+                ranAtUtc,
+                inputBytes,
+                info,
+                captureSaved);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
         {
         }
     }

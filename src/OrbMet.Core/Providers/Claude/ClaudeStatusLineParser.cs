@@ -23,8 +23,21 @@ public static class ClaudeStatusLineParser
     /// rate_limits block. The reset time is kept even when a percentage is
     /// missing, and a missing percentage is kept null rather than zeroed.
     /// </summary>
-    public static ClaudeCaptureRecord? Parse(string json, DateTimeOffset capturedAtUtc)
+    public static ClaudeCaptureRecord? Parse(string json, DateTimeOffset capturedAtUtc) =>
+        Parse(json, capturedAtUtc, out _);
+
+    /// <summary>
+    /// Same as <see cref="Parse(string, DateTimeOffset)"/>, also reporting
+    /// schema-level facts (readable JSON, rate_limits present, window names)
+    /// with no values, so a capture that finds nothing can still be explained.
+    /// </summary>
+    public static ClaudeCaptureRecord? Parse(
+        string json,
+        DateTimeOffset capturedAtUtc,
+        out ClaudeStatusLineParseInfo info)
     {
+        info = ClaudeStatusLineParseInfo.Empty;
+
         if (string.IsNullOrWhiteSpace(json))
         {
             return null;
@@ -40,12 +53,15 @@ public static class ClaudeStatusLineParser
             return null;
         }
 
+        info = new ClaudeStatusLineParseInfo(JsonReadable: true, HasRateLimits: false, WindowKeys: Array.Empty<string>());
+
         if (dto?.RateLimits is null)
         {
             return null;
         }
 
         var windows = new List<ClaudeCaptureWindow>();
+        var windowKeys = new List<string>();
         foreach (var (key, read) in KnownWindows)
         {
             var window = read(dto.RateLimits);
@@ -54,6 +70,7 @@ public static class ClaudeStatusLineParser
                 continue;
             }
 
+            windowKeys.Add(key);
             windows.Add(new ClaudeCaptureWindow
             {
                 Key = key,
@@ -61,6 +78,8 @@ public static class ClaudeStatusLineParser
                 ResetsAtUtc = ToUtc(window.ResetsAt),
             });
         }
+
+        info = new ClaudeStatusLineParseInfo(JsonReadable: true, HasRateLimits: true, WindowKeys: windowKeys);
 
         if (windows.Count == 0)
         {

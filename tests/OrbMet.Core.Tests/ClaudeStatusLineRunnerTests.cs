@@ -135,6 +135,33 @@ public class ClaudeStatusLineRunnerTests
         Assert.DoesNotContain("Users", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task WritesSanitizedDiagnosticsExplainingAnEmptyCapture()
+    {
+        using var temp = new TempDirectory();
+        var diagnostics = temp.Combine("logs");
+        var runner = new ClaudeStatusLineRunner(
+            new ClaudeCaptureStore(temp.Combine("captures", "claude")),
+            new ClaudeIntegrationRecordStore(temp.Combine("data", "integrations", "claude.json")),
+            new FakeChainRunner(),
+            () => Now,
+            TimeSpan.FromSeconds(2),
+            diagnostics);
+
+        var output = await RunAsync(
+            runner,
+            "{\"session_id\":\"very-secret\",\"cwd\":\"C:\\\\Users\\\\user\"," +
+            "\"model\":{\"display_name\":\"Opus\"}}");
+
+        Assert.Equal("OrbMet", output);
+        var text = File.ReadAllText(Path.Combine(diagnostics, "claude-statusline.json"));
+        Assert.Contains("\"hasRateLimits\":false", text, StringComparison.Ordinal);
+        Assert.Contains("\"jsonReadable\":true", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("very-secret", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Opus", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Users", text, StringComparison.Ordinal);
+    }
+
     private sealed class FakeChainRunner : IStatusLineChainRunner
     {
         public string? Result { get; init; } = "chained";

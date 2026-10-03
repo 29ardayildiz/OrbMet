@@ -110,4 +110,25 @@ public class ClaudeStatusLineParserTests
 
         Assert.Null(record!.SessionHash);
     }
+
+    [Fact]
+    public void ReportsSchemaFactsWithoutValues()
+    {
+        ClaudeStatusLineParser.Parse(
+            "{\"rate_limits\":{\"five_hour\":{\"used_percentage\":5},\"seven_day\":{\"used_percentage\":9}}}",
+            Captured,
+            out var withLimits);
+        Assert.True(withLimits.JsonReadable);
+        Assert.True(withLimits.HasRateLimits);
+        Assert.Equal(new[] { "five_hour", "seven_day" }, withLimits.WindowKeys);
+
+        ClaudeStatusLineParser.Parse("{\"model\":{\"display_name\":\"Opus\"}}", Captured, out var noLimits);
+        Assert.True(noLimits.JsonReadable);
+        Assert.False(noLimits.HasRateLimits);
+        Assert.Empty(noLimits.WindowKeys);
+
+        ClaudeStatusLineParser.Parse("{not json", Captured, out var broken);
+        Assert.False(broken.JsonReadable);
+        Assert.False(broken.HasRateLimits);
+    }
 }

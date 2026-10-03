@@ -34,6 +34,8 @@ public sealed class OrbMetPaths
 
     public string BackupsDirectory => Path.Combine(DataRoot, "backups");
 
+    public string LogsDirectory => Path.Combine(DataRoot, "logs");
+
     public static OrbMetPaths FromEnvironment()
     {
         var localAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
