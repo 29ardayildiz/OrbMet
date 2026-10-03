@@ -5,12 +5,21 @@
     <ProjectReference Include="..\OrbMet.Capture\OrbMet.Capture.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
+  <!-- WinForms is on only for the tray icon. Its implicit usings would collide
+       with WPF's Application/MessageBox, so they are removed here and imported
+       explicitly where needed. -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
   <!-- Keep the capture helper beside the app so the same relative lookup works

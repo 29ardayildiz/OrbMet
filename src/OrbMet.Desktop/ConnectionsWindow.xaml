@@ -1,0 +1,73 @@
+<Window x:Class="OrbMet.Desktop.ConnectionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="OrbMet Bağlantılar"
+        Height="400" Width="560"
+        Background="#15171C"
+        FontFamily="Segoe UI"
+        TextOptions.TextFormattingMode="Display">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="Bağlantılar"
+                   Foreground="#F4F6FA"
+                   FontSize="20"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,16" />
+
+        <Border Grid.Row="1"
+                Background="#1D2027"
+                BorderBrush="#343945"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="16">
+            <StackPanel>
+                <TextBlock Text="Claude Code"
+                           Foreground="#F4F6FA"
+                           FontSize="16"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="{Binding StatusText}"
+                           Foreground="#B6B0FF"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Margin="0,8,0,0" />
+                <TextBlock Text="{Binding DetailText}"
+                           Foreground="#B6BDCA"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Margin="0,6,0,0" />
+                <Button Content="{Binding ButtonText}"
+                        Command="{Binding ToggleCommand}"
+                        IsEnabled="{Binding CanToggle}"
+                        HorizontalAlignment="Left"
+                        Margin="0,14,0,0"
+                        MinWidth="120"
+                        Padding="14,6"
+                        Background="#B6B0FF"
+                        Foreground="#15171C"
+                        BorderThickness="0"
+                        FontWeight="SemiBold" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="2" VerticalAlignment="Bottom" Margin="0,16,0,0">
+            <TextBlock Text="{Binding SettingsPathText}"
+                       Foreground="#929BAA"
+                       FontSize="11"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="{Binding CapturePathText}"
+                       Foreground="#929BAA"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Margin="0,2,0,0" />
+        </StackPanel>
+    </Grid>
+</Window>
