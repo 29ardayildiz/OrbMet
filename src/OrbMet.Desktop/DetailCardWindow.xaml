@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:OrbMet.Desktop.Controls"
         xmlns:infra="clr-namespace:OrbMet.Desktop.Infrastructure"
-        Title="OrbMet ayrıntı"
+        Title="{Binding [CardWindowTitle], Source={x:Static infra:Localizer.Instance}}"
         Width="{x:Static infra:PanelMetrics.CardWidth}"
         SizeToContent="Height"
         WindowStyle="None"

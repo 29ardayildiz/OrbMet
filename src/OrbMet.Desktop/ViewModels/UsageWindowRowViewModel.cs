@@ -11,7 +11,7 @@ public sealed class UsageWindowRowViewModel
     /// <summary>Raw provider value for the bar, or null when missing or over.</summary>
     public double? Percent { get; init; }
 
-    /// <summary>"%6 kullanıldı"; empty once the window's reset has passed.</summary>
+    /// <summary>"6% used"; empty once the window's reset has passed.</summary>
     public required string UsedText { get; init; }
 
     public bool IsExhausted { get; init; }

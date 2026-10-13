@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using OrbMet.Core.Models;
 using OrbMet.Core.Usage;
+using OrbMet.Desktop.Infrastructure;
 
 namespace OrbMet.Desktop.ViewModels;
 
@@ -24,6 +25,11 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
     private bool _isRefreshing;
     private string _lastUpdatedText = string.Empty;
 
+    // What the menu's last line says, kept as facts so a language change can
+    // say it again: when the last read finished, or that it failed.
+    private DateTimeOffset? _lastChecked;
+    private bool _lastReadFailed;
+
     public PanelViewModel(UsageCoordinator coordinator)
     {
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
@@ -36,6 +42,7 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(120) };
         _timer.Tick += async (_, _) => await RefreshAsync();
+        Localizer.Instance.LanguageChanged += (_, _) => ShowLastUpdated();
     }
 
     public ProviderSlotViewModel Claude { get; }
@@ -100,14 +107,17 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
                 SlotFor(usage.Snapshot.ProviderId)?.Apply(usage);
             }
 
-            LastUpdatedText = $"Son kontrol: {DateTimeOffset.Now:HH:mm}";
+            _lastChecked = DateTimeOffset.Now;
+            _lastReadFailed = false;
+            ShowLastUpdated();
         }
         catch (OperationCanceledException)
         {
         }
         catch (Exception)
         {
-            LastUpdatedText = "Kullanım okunamadı";
+            _lastReadFailed = true;
+            ShowLastUpdated();
         }
         finally
         {
@@ -145,13 +155,24 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
         }
         catch (Exception)
         {
-            LastUpdatedText = "Kullanım okunamadı";
+            _lastReadFailed = true;
+            ShowLastUpdated();
         }
         finally
         {
             await HoldAsync(started);
             slot.IsRefreshing = false;
         }
+    }
+
+    private void ShowLastUpdated()
+    {
+        var text = Localizer.Instance.Text;
+        LastUpdatedText = _lastReadFailed
+            ? text["ReadFailed"]
+            : _lastChecked is { } checkedAt
+                ? text.Format("LastCheckFormat", checkedAt.ToString("HH:mm", text.Culture))
+                : string.Empty;
     }
 
     private async Task HoldAsync(Stopwatch started)

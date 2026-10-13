@@ -36,28 +36,68 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="MenuItem">
-                    <Border x:Name="Row"
-                            Height="32"
-                            Background="Transparent"
-                            CornerRadius="6"
-                            Padding="10,0,16,0">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="28" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <ContentPresenter ContentSource="Icon"
-                                              VerticalAlignment="Center"
-                                              TextElement.FontFamily="{StaticResource MenuIconFont}"
-                                              TextElement.FontSize="14"
-                                              TextElement.Foreground="#D9FFFFFF" />
-                            <ContentPresenter Grid.Column="1"
-                                              ContentSource="Header"
-                                              RecognizesAccessKey="True"
-                                              VerticalAlignment="Center" />
-                        </Grid>
-                    </Border>
+                    <Grid>
+                        <Border x:Name="Row"
+                                Height="32"
+                                Background="Transparent"
+                                CornerRadius="6"
+                                Padding="10,0,16,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter ContentSource="Icon"
+                                                  VerticalAlignment="Center"
+                                                  TextElement.FontFamily="{StaticResource MenuIconFont}"
+                                                  TextElement.FontSize="14"
+                                                  TextElement.Foreground="#D9FFFFFF" />
+                                <ContentPresenter Grid.Column="1"
+                                                  ContentSource="Header"
+                                                  RecognizesAccessKey="True"
+                                                  VerticalAlignment="Center" />
+                                <!-- Chevron Right, only on a row that opens a submenu. -->
+                                <TextBlock x:Name="Chevron"
+                                           Grid.Column="2"
+                                           Text="&#xE76C;"
+                                           FontFamily="{StaticResource MenuIconFont}"
+                                           FontSize="10"
+                                           Foreground="#99FFFFFF"
+                                           Margin="16,0,-6,0"
+                                           VerticalAlignment="Center"
+                                           Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <!-- A submenu opens to the right as its own black box. -->
+                        <Popup x:Name="PART_Popup"
+                               IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                               Placement="Right"
+                               HorizontalOffset="8"
+                               VerticalOffset="-7"
+                               AllowsTransparency="True"
+                               Focusable="False"
+                               PopupAnimation="None">
+                            <Border Background="Black"
+                                    BorderBrush="#1FFFFFFF"
+                                    BorderThickness="1"
+                                    CornerRadius="12"
+                                    Padding="6"
+                                    MinWidth="160"
+                                    TextElement.Foreground="White"
+                                    TextElement.FontFamily="Segoe UI Variable Text, Segoe UI"
+                                    TextElement.FontSize="13">
+                                <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
+                            </Border>
+                        </Popup>
+                    </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="Role" Value="SubmenuHeader">
+                            <Setter TargetName="Chevron" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsSubmenuOpen" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="#1AFFFFFF" />
+                        </Trigger>
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Row" Property="Background" Value="#1AFFFFFF" />
                         </Trigger>

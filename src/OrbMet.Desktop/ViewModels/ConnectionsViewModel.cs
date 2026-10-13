@@ -1,23 +1,25 @@
 using OrbMet.Core.Providers.Claude;
+using OrbMet.Desktop.Infrastructure;
 
 namespace OrbMet.Desktop.ViewModels;
 
 /// <summary>
 /// Drives the connect/disconnect surface for the Claude Code status line. The
 /// heavy work runs off the UI thread, and every outcome is described in plain
-/// language rather than exposing JSON or stack traces.
+/// language rather than exposing JSON or stack traces. A state is kept as
+/// its text keys, so a language change shows the same state in new words.
 /// </summary>
-public sealed class ConnectionsViewModel : ObservableObject
+public sealed class ConnectionsViewModel : ObservableObject, IDisposable
 {
-    private const string WaitingDetail = "Claude Code'un sonraki yanıtı bekleniyor.";
-    private const string ReceivingDetail = "Claude Code kullanım verisini OrbMet'e gönderiyor.";
 
     private readonly Func<ClaudeStatusLineIntegration?> _integrationFactory;
     private readonly Func<bool> _isReceiving;
     private readonly string? _captureExecutablePath;
     private readonly string? _settingsPath;
 
-    private string _statusText = "Bağlantı kontrol ediliyor…";
+    private string _statusKey = "CheckingConnection";
+    private string? _detailKey;
+    private string _statusText = string.Empty;
     private string _detailText = string.Empty;
     private bool _canToggle;
     private bool _isBusy;
@@ -35,6 +37,8 @@ public sealed class ConnectionsViewModel : ObservableObject
         _settingsPath = settingsPath;
         _integrationFactory = integrationFactory ?? throw new ArgumentNullException(nameof(integrationFactory));
         ToggleCommand = new RelayCommand(ToggleAsync, () => CanToggle);
+        ShowState();
+        Localizer.Instance.LanguageChanged += OnLanguageChanged;
     }
 
     public RelayCommand ToggleCommand { get; }
@@ -43,7 +47,9 @@ public sealed class ConnectionsViewModel : ObservableObject
     /// The one file Connect changes, with the profile folder as "~"; the
     /// window shows no other path (design.md 12).
     /// </summary>
-    public string? SettingsFootnote => _settingsPath is null ? null : "Değişen ayar: " + ShortPath(_settingsPath);
+    public string? SettingsFootnote => _settingsPath is null
+        ? null
+        : Localizer.Instance.Text.Format("SettingsFileFormat", ShortPath(_settingsPath));
 
     public string StatusText
     {
@@ -57,7 +63,7 @@ public sealed class ConnectionsViewModel : ObservableObject
         private set => SetProperty(ref _detailText, value);
     }
 
-    /// <summary>Whether the button offers Ayır rather than Bağla.</summary>
+    /// <summary>Whether the button offers Disconnect rather than Connect.</summary>
     public bool IsConnected
     {
         get => _connected;
@@ -89,10 +95,8 @@ public sealed class ConnectionsViewModel : ObservableObject
         {
             var helperMissing = _captureExecutablePath is null;
             SetState(
-                helperMissing ? "Yardımcı bulunamadı" : "Claude ayarları bulunamadı",
-                helperMissing
-                    ? "Capture yardımcısı uygulamanın yanında bulunamadı."
-                    : "Kullanıcı profilindeki Claude ayar yolu çözülemedi.",
+                helperMissing ? "HelperMissing" : "SettingsMissing",
+                helperMissing ? "HelperMissingExplained" : "SettingsMissingExplained",
                 canToggle: false,
                 connected: false);
             return;
@@ -103,8 +107,8 @@ public sealed class ConnectionsViewModel : ObservableObject
         if (!state.SettingsReadable)
         {
             SetState(
-                "Claude ayarları okunamadı",
-                "Dosya değiştirilmedi. Ayarlar geçerli JSON olmadan OrbMet yazmaz.",
+                "SettingsUnreadable",
+                "SettingsInvalidExplained",
                 canToggle: true,
                 connected: false);
             return;
@@ -112,13 +116,13 @@ public sealed class ConnectionsViewModel : ObservableObject
 
         if (state.Connected)
         {
-            SetConnected("Bağlı");
+            SetConnected("Connected");
         }
         else
         {
             SetState(
-                "Bağlı değil",
-                "Bağla, Claude Code'un status line'ını OrbMet'e yönlendirir. Mevcut status line ve diğer ayarlar korunur.",
+                "NotConnected",
+                "ConnectExplained",
                 canToggle: true,
                 connected: false);
         }
@@ -148,8 +152,8 @@ public sealed class ConnectionsViewModel : ObservableObject
         {
             IsBusy = false;
             SetState(
-                "Beklenmeyen hata",
-                "İşlem tamamlanamadı; dosya değiştirilmedi.",
+                "UnexpectedError",
+                "UnexpectedErrorExplained",
                 canToggle: true,
                 connected: wasConnected);
             return;
@@ -164,35 +168,33 @@ public sealed class ConnectionsViewModel : ObservableObject
         switch (result.Status)
         {
             case ClaudeIntegrationStatus.Connected:
-                SetConnected("Bağlandı");
+                SetConnected("JustConnected");
                 break;
 
             case ClaudeIntegrationStatus.Disconnected:
                 SetState(
-                    "Bağlantı kaldırıldı",
-                    "Önceki status line geri yüklendi.",
+                    "Disconnected",
+                    "DisconnectedExplained",
                     canToggle: true,
                     connected: false);
                 break;
 
             case ClaudeIntegrationStatus.Conflict:
                 SetState(
-                    "Değişiklik çakıştı",
-                    wasConnected
-                        ? "Status line'ı siz değiştirdiniz; OrbMet dokunmadı."
-                        : "Dosya siz düzenlerken değişti; tekrar deneyin.",
+                    "Conflict",
+                    wasConnected ? "ConflictUserChanged" : "ConflictFileChanged",
                     canToggle: true,
                     connected: wasConnected);
                 break;
 
             case ClaudeIntegrationStatus.NotConnected:
-                SetState("Bağlı değil", string.Empty, canToggle: true, connected: false);
+                SetState("NotConnected", null, canToggle: true, connected: false);
                 break;
 
             default:
                 SetState(
-                    "Claude ayarları okunamadı",
-                    "Dosya değiştirilmedi.",
+                    "SettingsUnreadable",
+                    "NothingChanged",
                     canToggle: true,
                     connected: wasConnected);
                 break;
@@ -207,27 +209,45 @@ public sealed class ConnectionsViewModel : ObservableObject
     {
         if (_showsConnectedDetail)
         {
-            DetailText = ConnectedDetail;
+            ShowState();
         }
+    }
+
+    public void Dispose() => Localizer.Instance.LanguageChanged -= OnLanguageChanged;
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        ShowState();
+        OnPropertyChanged(nameof(SettingsFootnote));
     }
 
     // Connected only says the status line points at OrbMet; whether data has
     // actually come through is a separate fact, and the detail says which.
-    private string ConnectedDetail => _isReceiving() ? ReceivingDetail : WaitingDetail;
+    private string ConnectedDetailKey => _isReceiving() ? "ClaudeReceiving" : "ClaudeWaiting";
 
-    private void SetConnected(string status)
+    private void SetConnected(string statusKey)
     {
-        SetState(status, ConnectedDetail, canToggle: true, connected: true);
+        SetState(statusKey, null, canToggle: true, connected: true);
         _showsConnectedDetail = true;
+        ShowState();
     }
 
-    private void SetState(string status, string detail, bool canToggle, bool connected)
+    private void SetState(string statusKey, string? detailKey, bool canToggle, bool connected)
     {
         _showsConnectedDetail = false;
-        StatusText = status;
-        DetailText = detail;
+        _statusKey = statusKey;
+        _detailKey = detailKey;
         CanToggle = canToggle;
         IsConnected = connected;
+        ShowState();
+    }
+
+    private void ShowState()
+    {
+        var text = Localizer.Instance.Text;
+        StatusText = text[_statusKey];
+        var detailKey = _showsConnectedDetail ? ConnectedDetailKey : _detailKey;
+        DetailText = detailKey is null ? string.Empty : text[detailKey];
     }
 
     private static string ShortPath(string path)

@@ -1,5 +1,6 @@
 using OrbMet.Core.Models;
 using OrbMet.Core.Usage;
+using OrbMet.Desktop.Infrastructure;
 
 namespace OrbMet.Desktop.ViewModels;
 
@@ -7,12 +8,10 @@ namespace OrbMet.Desktop.ViewModels;
 /// One provider's fixed slot: the strip's ring and percentage, and the detail
 /// card's content (design.md 6 and 7). Time-dependent text is rebuilt from the
 /// last snapshot whenever <see cref="UpdateDetails"/> runs, so it never goes
-/// stale on screen.
+/// stale on screen, and again in the new words when the language changes.
 /// </summary>
 public sealed class ProviderSlotViewModel : ObservableObject
 {
-    private const string CheckingText = "Bağlantı kontrol ediliyor…";
-
     private ProviderUsage? _usage;
     private double? _ringPercent;
     private bool _isExhausted;
@@ -22,7 +21,7 @@ public sealed class ProviderSlotViewModel : ObservableObject
     private bool _isSelected;
     private string _percentText = "—";
     private string _accessibleText = string.Empty;
-    private string? _message = CheckingText;
+    private string? _message = Localizer.Instance["CheckingConnection"];
     private string? _footnote;
     private string? _planText;
     private bool _isReceiving;
@@ -33,14 +32,15 @@ public sealed class ProviderSlotViewModel : ObservableObject
         ProviderId = providerId;
         DisplayName = displayName;
         Mark = mark;
+        Localizer.Instance.LanguageChanged += (_, _) => OnLanguageChanged();
     }
 
     public ProviderId ProviderId { get; }
 
     public string DisplayName { get; }
 
-    /// <summary>The card's heading, "Claude Code kullanımı".</summary>
-    public string CardTitle => $"{DisplayName} kullanımı";
+    /// <summary>The card heading's spoken name, "Claude Code usage".</summary>
+    public string CardTitle => Localizer.Instance.Text.Format("CardTitleFormat", DisplayName);
 
     /// <summary>Asset name of the provider logo drawn in the ring and the card.</summary>
     public string Mark { get; }
@@ -139,6 +139,7 @@ public sealed class ProviderSlotViewModel : ObservableObject
 
     public void Apply(ProviderUsage usage)
     {
+        var text = Localizer.Instance.Usage;
         _usage = usage;
         var window = usage.RingWindow;
 
@@ -146,14 +147,15 @@ public sealed class ProviderSlotViewModel : ObservableObject
         RingPercent = window?.UsedPercent;
         HasReading = RingPercent is not null;
         IsSpent = IsExhausted || RingPercent >= 100;
-        PercentText = UsageText.Percent(RingPercent);
-        PlanText = UsageText.Plan(usage.Snapshot.PlanName);
+        PercentText = text.Percent(RingPercent);
+        PlanText = text.Plan(usage.Snapshot.PlanName);
 
         UpdateDetails(DateTimeOffset.UtcNow, TimeZoneInfo.Local);
 
+        var words = Localizer.Instance.Text;
         AccessibleText = window?.UsedPercent is { } percent
-            ? $"{DisplayName}, {UsageText.LimitTitle(window, DisplayName)}, yüzde {UsageText.Percent(percent).TrimStart('%')} kullanıldı"
-            : $"{DisplayName}, kullanım verisi yok";
+            ? words.Format("SpokenUsageFormat", DisplayName, text.LimitTitle(window, DisplayName), percent.ToString("0", words.Culture))
+            : words.Format("SpokenNoDataFormat", DisplayName);
         if ((Message ?? Footnote) is { } note)
         {
             AccessibleText += $", {note}";
@@ -175,21 +177,22 @@ public sealed class ProviderSlotViewModel : ObservableObject
         Rows = snapshot.Windows.Select(window => BuildRow(window, nowUtc, zone)).ToList();
         Message = BuildMessage(snapshot, nowUtc);
         Footnote = snapshot.Windows.Count > 0 && snapshot.Freshness == Freshness.Stale
-            ? UsageText.StaleFootnote(snapshot.ObservedAtUtc, nowUtc, zone)
+            ? Localizer.Instance.Usage.StaleFootnote(snapshot.ObservedAtUtc, nowUtc, zone)
             : null;
     }
 
     private UsageWindowRowViewModel BuildRow(UsageWindow window, DateTimeOffset nowUtc, TimeZoneInfo zone)
     {
-        var title = UsageText.LimitTitle(window, DisplayName);
+        var text = Localizer.Instance.Usage;
+        var title = text.LimitTitle(window, DisplayName);
         var expired = UsageText.IsPast(window.ResetsAtUtc, nowUtc);
-        var resetText = UsageText.ResetAt(window.ResetsAtUtc, nowUtc, zone);
+        var resetText = text.ResetAt(window.ResetsAtUtc, nowUtc, zone);
 
         // A window whose reset has passed belongs to the old period; its value
         // is hidden rather than shown as the new period's usage.
         var percent = expired ? null : window.UsedPercent;
         var exhausted = !expired && window.ExhaustionEvidence == ExhaustionEvidence.Exhausted;
-        var usedText = expired ? string.Empty : UsageText.Used(percent);
+        var usedText = expired ? string.Empty : text.Used(percent);
 
         var spoken = expired
             ? $"{title}, {resetText}"
@@ -211,34 +214,48 @@ public sealed class ProviderSlotViewModel : ObservableObject
     /// <summary>The card's message line from design.md section 12; null when the rows say it all.</summary>
     private string? BuildMessage(ProviderSnapshot snapshot, DateTimeOffset nowUtc)
     {
+        var words = Localizer.Instance.Text;
         switch (snapshot.ConnectionState)
         {
             case ConnectionState.Disabled:
-                return "İzleme kapalı";
+                return words["MonitoringOff"];
             case ConnectionState.MissingTool:
-                return $"{DisplayName} bulunamadı.";
+                return words.Format("NotFoundFormat", DisplayName);
             case ConnectionState.SignInRequired:
                 return ProviderId == ProviderId.Codex
-                    ? "Codex'te oturum açman gerekiyor."
-                    : "Oturum açman gerekiyor.";
+                    ? words["CodexSignInRequired"]
+                    : words["SignInRequired"];
             case ConnectionState.Unsupported:
-                return "Bu sürüm kullanım bilgisi sunmuyor.";
+                return words["Unsupported"];
             case ConnectionState.Error:
-                return "Kullanım şu anda okunamadı.";
+                return words["CouldNotRead"];
             case ConnectionState.AwaitingData when snapshot.ErrorCode == "claude-no-capture":
-                return "Claude Code'dan veri bekleniyor. Bağlı değilse sağ tık menüsündeki Bağlantılar'dan bağlayabilirsin.";
+                return words["ClaudeAwaiting"];
             case ConnectionState.AwaitingData:
-                return "Yeni kullanım verisi bekleniyor.";
+                return words["AwaitingUsage"];
         }
 
         if (snapshot.Windows.Count == 0)
         {
-            return "Yeni kullanım verisi bekleniyor.";
+            return words["AwaitingUsage"];
         }
 
         var blocked = snapshot.Windows.Any(window =>
             window.ExhaustionEvidence == ExhaustionEvidence.Exhausted &&
             !UsageText.IsPast(window.ResetsAtUtc, nowUtc));
-        return blocked ? "Limit doldu. Sağlayıcı bildirdi." : null;
+        return blocked ? words["LimitReached"] : null;
+    }
+
+    private void OnLanguageChanged()
+    {
+        OnPropertyChanged(nameof(CardTitle));
+        if (_usage is { } usage)
+        {
+            Apply(usage);
+        }
+        else
+        {
+            Message = Localizer.Instance["CheckingConnection"];
+        }
     }
 }

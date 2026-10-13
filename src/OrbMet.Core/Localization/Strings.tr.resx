@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="PercentFormat" xml:space="preserve">
+    <value>%{0}</value>
+  </data>
+  <data name="UsedFormat" xml:space="preserve">
+    <value>{0} kullanıldı</value>
+  </data>
+  <data name="UsageNotReported" xml:space="preserve">
+    <value>Kullanım bildirilmedi</value>
+  </data>
+  <data name="UsageLimit" xml:space="preserve">
+    <value>Kullanım limiti</value>
+  </data>
+  <data name="LimitFormat" xml:space="preserve">
+    <value>{0} limit</value>
+  </data>
+  <data name="Weekly" xml:space="preserve">
+    <value>Haftalık</value>
+  </data>
+  <data name="Daily" xml:space="preserve">
+    <value>Günlük</value>
+  </data>
+  <data name="DaysFormat" xml:space="preserve">
+    <value>{0} günlük</value>
+  </data>
+  <data name="HoursFormat" xml:space="preserve">
+    <value>{0} saatlik</value>
+  </data>
+  <data name="ResetsFormat" xml:space="preserve">
+    <value>Sıfırlanma {0}</value>
+  </data>
+  <data name="ResetTimeFormat" xml:space="preserve">
+    <value>HH:mm</value>
+  </data>
+  <data name="DateTimeFormat" xml:space="preserve">
+    <value>d MMM HH:mm</value>
+  </data>
+  <data name="WaitingForNewData" xml:space="preserve">
+    <value>Yeni veri bekleniyor</value>
+  </data>
+  <data name="PlanFormat" xml:space="preserve">
+    <value>Plan: {0}</value>
+  </data>
+  <data name="MayBeOutOfDate" xml:space="preserve">
+    <value>Veri güncel olmayabilir</value>
+  </data>
+  <data name="AsOfJustNow" xml:space="preserve">
+    <value>Az önce itibarıyla</value>
+  </data>
+  <data name="AsOfMinutesFormat" xml:space="preserve">
+    <value>{0} dk önce itibarıyla</value>
+  </data>
+  <data name="AsOfHoursFormat" xml:space="preserve">
+    <value>{0} sa önce itibarıyla</value>
+  </data>
+  <data name="AsOfFormat" xml:space="preserve">
+    <value>{0} itibarıyla</value>
+  </data>
+  <data name="CheckingConnection" xml:space="preserve">
+    <value>Bağlantı kontrol ediliyor…</value>
+  </data>
+  <data name="CardTitleFormat" xml:space="preserve">
+    <value>{0} kullanımı</value>
+  </data>
+  <data name="SpokenUsageFormat" xml:space="preserve">
+    <value>{0}, {1}, yüzde {2} kullanıldı</value>
+  </data>
+  <data name="SpokenNoDataFormat" xml:space="preserve">
+    <value>{0}, kullanım verisi yok</value>
+  </data>
+  <data name="MonitoringOff" xml:space="preserve">
+    <value>İzleme kapalı</value>
+  </data>
+  <data name="NotFoundFormat" xml:space="preserve">
+    <value>{0} bulunamadı.</value>
+  </data>
+  <data name="CodexSignInRequired" xml:space="preserve">
+    <value>Codex'te oturum açman gerekiyor.</value>
+  </data>
+  <data name="SignInRequired" xml:space="preserve">
+    <value>Oturum açman gerekiyor.</value>
+  </data>
+  <data name="Unsupported" xml:space="preserve">
+    <value>Bu sürüm kullanım bilgisi sunmuyor.</value>
+  </data>
+  <data name="CouldNotRead" xml:space="preserve">
+    <value>Kullanım şu anda okunamadı.</value>
+  </data>
+  <data name="ClaudeAwaiting" xml:space="preserve">
+    <value>Claude Code'dan veri bekleniyor. Bağlı değilse sağ tık menüsündeki Bağlantılar'dan bağlayabilirsin.</value>
+  </data>
+  <data name="AwaitingUsage" xml:space="preserve">
+    <value>Yeni kullanım verisi bekleniyor.</value>
+  </data>
+  <data name="LimitReached" xml:space="preserve">
+    <value>Limit doldu. Sağlayıcı bildirdi.</value>
+  </data>
+  <data name="LastCheckFormat" xml:space="preserve">
+    <value>Son kontrol: {0}</value>
+  </data>
+  <data name="ReadFailed" xml:space="preserve">
+    <value>Kullanım okunamadı</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Yenile</value>
+  </data>
+  <data name="Connections" xml:space="preserve">
+    <value>Bağlantılar</value>
+  </data>
+  <data name="HidePanel" xml:space="preserve">
+    <value>Paneli gizle</value>
+  </data>
+  <data name="TogglePanel" xml:space="preserve">
+    <value>Paneli göster / gizle</value>
+  </data>
+  <data name="OpenDetails" xml:space="preserve">
+    <value>Ayrıntıları aç</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>Çıkış</value>
+  </data>
+  <data name="ConnectionsTitle" xml:space="preserve">
+    <value>OrbMet Bağlantılar</value>
+  </data>
+  <data name="Details" xml:space="preserve">
+    <value>Ayrıntılar</value>
+  </data>
+  <data name="DetailsTitle" xml:space="preserve">
+    <value>OrbMet Ayrıntılar</value>
+  </data>
+  <data name="CardWindowTitle" xml:space="preserve">
+    <value>OrbMet ayrıntı</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Kapat</value>
+  </data>
+  <data name="Connect" xml:space="preserve">
+    <value>Bağla</value>
+  </data>
+  <data name="Disconnect" xml:space="preserve">
+    <value>Ayır</value>
+  </data>
+  <data name="ConnectClaude" xml:space="preserve">
+    <value>Claude Code'u bağla</value>
+  </data>
+  <data name="DisconnectClaude" xml:space="preserve">
+    <value>Claude Code bağlantısını kaldır</value>
+  </data>
+  <data name="Connected" xml:space="preserve">
+    <value>Bağlı</value>
+  </data>
+  <data name="JustConnected" xml:space="preserve">
+    <value>Bağlandı</value>
+  </data>
+  <data name="NotConnected" xml:space="preserve">
+    <value>Bağlı değil</value>
+  </data>
+  <data name="ConnectExplained" xml:space="preserve">
+    <value>Bağla, Claude Code'un status line'ını OrbMet'e yönlendirir. Mevcut status line ve diğer ayarlar korunur.</value>
+  </data>
+  <data name="ClaudeWaiting" xml:space="preserve">
+    <value>Claude Code'un sonraki yanıtı bekleniyor.</value>
+  </data>
+  <data name="ClaudeReceiving" xml:space="preserve">
+    <value>Claude Code kullanım verisini OrbMet'e gönderiyor.</value>
+  </data>
+  <data name="HelperMissing" xml:space="preserve">
+    <value>Yardımcı bulunamadı</value>
+  </data>
+  <data name="HelperMissingExplained" xml:space="preserve">
+    <value>Capture yardımcısı uygulamanın yanında bulunamadı.</value>
+  </data>
+  <data name="SettingsMissing" xml:space="preserve">
+    <value>Claude ayarları bulunamadı</value>
+  </data>
+  <data name="SettingsMissingExplained" xml:space="preserve">
+    <value>Kullanıcı profilindeki Claude ayar yolu çözülemedi.</value>
+  </data>
+  <data name="SettingsUnreadable" xml:space="preserve">
+    <value>Claude ayarları okunamadı</value>
+  </data>
+  <data name="SettingsInvalidExplained" xml:space="preserve">
+    <value>Dosya değiştirilmedi. Ayarlar geçerli JSON olmadan OrbMet yazmaz.</value>
+  </data>
+  <data name="NothingChanged" xml:space="preserve">
+    <value>Dosya değiştirilmedi.</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>Beklenmeyen hata</value>
+  </data>
+  <data name="UnexpectedErrorExplained" xml:space="preserve">
+    <value>İşlem tamamlanamadı; dosya değiştirilmedi.</value>
+  </data>
+  <data name="Disconnected" xml:space="preserve">
+    <value>Bağlantı kaldırıldı</value>
+  </data>
+  <data name="DisconnectedExplained" xml:space="preserve">
+    <value>Önceki status line geri yüklendi.</value>
+  </data>
+  <data name="Conflict" xml:space="preserve">
+    <value>Değişiklik çakıştı</value>
+  </data>
+  <data name="ConflictUserChanged" xml:space="preserve">
+    <value>Status line'ı siz değiştirdiniz; OrbMet dokunmadı.</value>
+  </data>
+  <data name="ConflictFileChanged" xml:space="preserve">
+    <value>Dosya siz düzenlerken değişti; tekrar deneyin.</value>
+  </data>
+  <data name="SettingsFileFormat" xml:space="preserve">
+    <value>Değişen ayar: {0}</value>
+  </data>
+  <data name="CodexOwnSignIn" xml:space="preserve">
+    <value>Codex'in kendi oturumu kullanılır; ayrıca bağlamak gerekmez.</value>
+  </data>
+</root>

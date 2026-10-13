@@ -84,7 +84,7 @@
                                         Style="{StaticResource CaptionButton}"
                                         Content="&#xE8BB;"
                                         Command="{x:Static SystemCommands.CloseWindowCommand}"
-                                        AutomationProperties.Name="Kapat" />
+                                        AutomationProperties.Name="{Binding [Close], Source={x:Static infra:Localizer.Instance}}" />
                             </Grid>
                             <AdornerDecorator>
                                 <ContentPresenter />

@@ -67,6 +67,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        StripMenu.Items.Insert(3, LanguageMenu.Create());
 
         var paths = OrbMetPaths.FromEnvironment();
         var coordinator = new UsageCoordinator(new IUsageProvider[]

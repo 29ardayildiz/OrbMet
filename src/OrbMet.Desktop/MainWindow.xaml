@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:infra="clr-namespace:OrbMet.Desktop.Infrastructure"
         mc:Ignorable="d"
         Title="OrbMet"
         WindowStyle="None"
@@ -23,15 +24,16 @@
           MouseLeftButtonUp="OnRelease"
           LostMouseCapture="OnLostCapture">
         <Grid.ContextMenu>
-            <ContextMenu>
-                <!-- Glyphs: Segoe Fluent Icons Refresh, Link, Hide (Themes/Menus.xaml). -->
-                <MenuItem Header="Yenile"
+            <ContextMenu x:Name="StripMenu">
+                <!-- Glyphs: Segoe Fluent Icons Refresh, Link, Hide (Themes/Menus.xaml).
+                     The language submenu goes in after Hide, from code. -->
+                <MenuItem Header="{Binding [Refresh], Source={x:Static infra:Localizer.Instance}}"
                           Icon="&#xE72C;"
                           Command="{Binding RefreshCommand}" />
-                <MenuItem Header="Bağlantılar"
+                <MenuItem Header="{Binding [Connections], Source={x:Static infra:Localizer.Instance}}"
                           Icon="&#xE71B;"
                           Click="OnConnectionsClick" />
-                <MenuItem Header="Paneli gizle"
+                <MenuItem Header="{Binding [HidePanel], Source={x:Static infra:Localizer.Instance}}"
                           Icon="&#xED1A;"
                           Click="OnHideClick" />
                 <Separator />

@@ -38,6 +38,9 @@ public sealed class OrbMetPaths
 
     public string PanelPositionFile => Path.Combine(DataRoot, "panel.json");
 
+    /// <summary>OrbMet's own preferences, such as the language.</summary>
+    public string SettingsFile => Path.Combine(DataRoot, "settings.json");
+
     public static OrbMetPaths FromEnvironment()
     {
         var localAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");

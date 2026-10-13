@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="PercentFormat" xml:space="preserve">
+    <value>{0}%</value>
+    <comment>A usage figure; {0} is the number. Turkish puts the sign first.</comment>
+  </data>
+  <data name="UsedFormat" xml:space="preserve">
+    <value>{0} used</value>
+    <comment>{0} is a formatted percentage.</comment>
+  </data>
+  <data name="UsageNotReported" xml:space="preserve">
+    <value>Usage not reported</value>
+  </data>
+  <data name="UsageLimit" xml:space="preserve">
+    <value>Usage limit</value>
+    <comment>A window whose length is not reported.</comment>
+  </data>
+  <data name="LimitFormat" xml:space="preserve">
+    <value>{0} limit</value>
+    <comment>{0} is a window length such as 5-hour or Weekly.</comment>
+  </data>
+  <data name="Weekly" xml:space="preserve">
+    <value>Weekly</value>
+  </data>
+  <data name="Daily" xml:space="preserve">
+    <value>Daily</value>
+  </data>
+  <data name="DaysFormat" xml:space="preserve">
+    <value>{0}-day</value>
+  </data>
+  <data name="HoursFormat" xml:space="preserve">
+    <value>{0}-hour</value>
+  </data>
+  <data name="ResetsFormat" xml:space="preserve">
+    <value>Resets {0}</value>
+    <comment>{0} is a time, or a date and time.</comment>
+  </data>
+  <data name="ResetTimeFormat" xml:space="preserve">
+    <value>HH:mm</value>
+    <comment>Date format string for a reset today.</comment>
+  </data>
+  <data name="DateTimeFormat" xml:space="preserve">
+    <value>MMM d, HH:mm</value>
+    <comment>Date format string for another day.</comment>
+  </data>
+  <data name="WaitingForNewData" xml:space="preserve">
+    <value>Waiting for new data</value>
+    <comment>A window's reset has passed.</comment>
+  </data>
+  <data name="PlanFormat" xml:space="preserve">
+    <value>Plan: {0}</value>
+  </data>
+  <data name="MayBeOutOfDate" xml:space="preserve">
+    <value>Data may be out of date</value>
+  </data>
+  <data name="AsOfJustNow" xml:space="preserve">
+    <value>As of just now</value>
+  </data>
+  <data name="AsOfMinutesFormat" xml:space="preserve">
+    <value>As of {0} min ago</value>
+  </data>
+  <data name="AsOfHoursFormat" xml:space="preserve">
+    <value>As of {0} h ago</value>
+  </data>
+  <data name="AsOfFormat" xml:space="preserve">
+    <value>As of {0}</value>
+    <comment>{0} is a date and time.</comment>
+  </data>
+  <data name="CheckingConnection" xml:space="preserve">
+    <value>Checking connection…</value>
+  </data>
+  <data name="CardTitleFormat" xml:space="preserve">
+    <value>{0} usage</value>
+    <comment>{0} is the provider name; spoken name of the card heading.</comment>
+  </data>
+  <data name="SpokenUsageFormat" xml:space="preserve">
+    <value>{0}, {1}, {2} percent used</value>
+    <comment>{0} provider, {1} limit, {2} number.</comment>
+  </data>
+  <data name="SpokenNoDataFormat" xml:space="preserve">
+    <value>{0}, no usage data</value>
+  </data>
+  <data name="MonitoringOff" xml:space="preserve">
+    <value>Monitoring off</value>
+  </data>
+  <data name="NotFoundFormat" xml:space="preserve">
+    <value>{0} not found.</value>
+  </data>
+  <data name="CodexSignInRequired" xml:space="preserve">
+    <value>Sign in to Codex.</value>
+  </data>
+  <data name="SignInRequired" xml:space="preserve">
+    <value>Sign-in required.</value>
+  </data>
+  <data name="Unsupported" xml:space="preserve">
+    <value>This version doesn't report usage.</value>
+  </data>
+  <data name="CouldNotRead" xml:space="preserve">
+    <value>Couldn't read usage right now.</value>
+  </data>
+  <data name="ClaudeAwaiting" xml:space="preserve">
+    <value>Waiting for data from Claude Code. If it isn't connected, connect it from Connections in the right-click menu.</value>
+  </data>
+  <data name="AwaitingUsage" xml:space="preserve">
+    <value>Waiting for new usage data.</value>
+  </data>
+  <data name="LimitReached" xml:space="preserve">
+    <value>Limit reached, as reported by the provider.</value>
+  </data>
+  <data name="LastCheckFormat" xml:space="preserve">
+    <value>Last check: {0}</value>
+    <comment>{0} is a time.</comment>
+  </data>
+  <data name="ReadFailed" xml:space="preserve">
+    <value>Couldn't read usage</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Connections" xml:space="preserve">
+    <value>Connections</value>
+  </data>
+  <data name="HidePanel" xml:space="preserve">
+    <value>Hide panel</value>
+  </data>
+  <data name="TogglePanel" xml:space="preserve">
+    <value>Show / hide panel</value>
+  </data>
+  <data name="OpenDetails" xml:space="preserve">
+    <value>Open details</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="ConnectionsTitle" xml:space="preserve">
+    <value>OrbMet Connections</value>
+    <comment>Taskbar name.</comment>
+  </data>
+  <data name="Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="DetailsTitle" xml:space="preserve">
+    <value>OrbMet Details</value>
+    <comment>Taskbar name.</comment>
+  </data>
+  <data name="CardWindowTitle" xml:space="preserve">
+    <value>OrbMet details</value>
+    <comment>The hover card's window name, never shown.</comment>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Connect" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="Disconnect" xml:space="preserve">
+    <value>Disconnect</value>
+  </data>
+  <data name="ConnectClaude" xml:space="preserve">
+    <value>Connect Claude Code</value>
+    <comment>Spoken name of the button.</comment>
+  </data>
+  <data name="DisconnectClaude" xml:space="preserve">
+    <value>Disconnect Claude Code</value>
+    <comment>Spoken name of the button.</comment>
+  </data>
+  <data name="Connected" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="JustConnected" xml:space="preserve">
+    <value>Connected</value>
+    <comment>Right after the user connected.</comment>
+  </data>
+  <data name="NotConnected" xml:space="preserve">
+    <value>Not connected</value>
+  </data>
+  <data name="ConnectExplained" xml:space="preserve">
+    <value>Connect points Claude Code's status line at OrbMet. Your current status line and other settings are kept.</value>
+  </data>
+  <data name="ClaudeWaiting" xml:space="preserve">
+    <value>Waiting for Claude Code's next response.</value>
+  </data>
+  <data name="ClaudeReceiving" xml:space="preserve">
+    <value>Claude Code is sending its usage to OrbMet.</value>
+  </data>
+  <data name="HelperMissing" xml:space="preserve">
+    <value>Helper not found</value>
+  </data>
+  <data name="HelperMissingExplained" xml:space="preserve">
+    <value>The capture helper wasn't found next to the app.</value>
+  </data>
+  <data name="SettingsMissing" xml:space="preserve">
+    <value>Claude settings not found</value>
+  </data>
+  <data name="SettingsMissingExplained" xml:space="preserve">
+    <value>The Claude settings path in your profile couldn't be resolved.</value>
+  </data>
+  <data name="SettingsUnreadable" xml:space="preserve">
+    <value>Couldn't read Claude settings</value>
+  </data>
+  <data name="SettingsInvalidExplained" xml:space="preserve">
+    <value>Nothing was changed. OrbMet only writes settings that are valid JSON.</value>
+  </data>
+  <data name="NothingChanged" xml:space="preserve">
+    <value>Nothing was changed.</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>Unexpected error</value>
+  </data>
+  <data name="UnexpectedErrorExplained" xml:space="preserve">
+    <value>That didn't finish; nothing was changed.</value>
+  </data>
+  <data name="Disconnected" xml:space="preserve">
+    <value>Disconnected</value>
+  </data>
+  <data name="DisconnectedExplained" xml:space="preserve">
+    <value>Your previous status line is back.</value>
+  </data>
+  <data name="Conflict" xml:space="preserve">
+    <value>Changes conflicted</value>
+  </data>
+  <data name="ConflictUserChanged" xml:space="preserve">
+    <value>You changed the status line yourself; OrbMet left it alone.</value>
+  </data>
+  <data name="ConflictFileChanged" xml:space="preserve">
+    <value>The file changed while it was being edited; try again.</value>
+  </data>
+  <data name="SettingsFileFormat" xml:space="preserve">
+    <value>Settings file: {0}</value>
+    <comment>{0} is a path with the profile folder as ~.</comment>
+  </data>
+  <data name="CodexOwnSignIn" xml:space="preserve">
+    <value>Codex uses its own sign-in; there's nothing to connect.</value>
+  </data>
+</root>

@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:OrbMet.Desktop.Controls"
         xmlns:infra="clr-namespace:OrbMet.Desktop.Infrastructure"
-        Title="OrbMet Bağlantılar"
-        infra:OrbMetFrame.Caption="Bağlantılar"
+        Title="{Binding [ConnectionsTitle], Source={x:Static infra:Localizer.Instance}}"
+        infra:OrbMetFrame.Caption="{Binding [Connections], Source={x:Static infra:Localizer.Instance}}"
         Style="{StaticResource OrbMetWindow}"
         Width="360"
         SizeToContent="Height"
@@ -70,10 +70,10 @@
                            Style="{StaticResource Footnote}" />
 
                 <Grid Margin="0,14,0,0" HorizontalAlignment="Left">
-                    <Button Content="Bağla"
+                    <Button Content="{Binding [Connect], Source={x:Static infra:Localizer.Instance}}"
                             Tag="&#xE71B;"
                             Command="{Binding ToggleCommand}"
-                            AutomationProperties.Name="Claude Code'u bağla">
+                            AutomationProperties.Name="{Binding [ConnectClaude], Source={x:Static infra:Localizer.Instance}}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource PrimaryActionButton}">
                                 <Style.Triggers>
@@ -84,10 +84,10 @@
                             </Style>
                         </Button.Style>
                     </Button>
-                    <Button Content="Ayır"
+                    <Button Content="{Binding [Disconnect], Source={x:Static infra:Localizer.Instance}}"
                             Tag="&#xE711;"
                             Command="{Binding ToggleCommand}"
-                            AutomationProperties.Name="Claude Code bağlantısını kaldır">
+                            AutomationProperties.Name="{Binding [DisconnectClaude], Source={x:Static infra:Localizer.Instance}}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -112,8 +112,20 @@
                     <controls:ProviderMark Width="16" Height="16" Mark="openai" Fill="White" />
                     <TextBlock Text="Codex" Style="{StaticResource ProviderName}" />
                 </StackPanel>
-                <TextBlock Text="{Binding Message, TargetNullValue='Bağlı'}" Style="{StaticResource Status}" />
-                <TextBlock Text="Codex'in kendi oturumu kullanılır; ayrıca bağlamak gerekmez."
+                <!-- The card's message when there is one, otherwise just Connected. -->
+                <TextBlock>
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Status}">
+                            <Setter Property="Text" Value="{Binding Message}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Message}" Value="{x:Null}">
+                                    <Setter Property="Text" Value="{Binding [Connected], Source={x:Static infra:Localizer.Instance}}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Text="{Binding [CodexOwnSignIn], Source={x:Static infra:Localizer.Instance}}"
                            Style="{StaticResource Detail}" />
                 <TextBlock Text="{Binding PlanText, TargetNullValue=''}"
                            Style="{StaticResource Plan}" />

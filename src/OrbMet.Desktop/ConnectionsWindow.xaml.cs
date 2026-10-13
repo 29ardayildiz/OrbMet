@@ -33,7 +33,11 @@ public partial class ConnectionsWindow : Window
             }
         };
         claude.PropertyChanged += onClaudeChanged;
-        Closed += (_, _) => claude.PropertyChanged -= onClaudeChanged;
+        Closed += (_, _) =>
+        {
+            claude.PropertyChanged -= onClaudeChanged;
+            _viewModel.Dispose();
+        };
         Loaded += async (_, _) => await _viewModel.RefreshAsync();
     }
 

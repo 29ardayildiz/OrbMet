@@ -28,17 +28,19 @@ internal sealed class TrayIcon : IDisposable
         Action refresh,
         Action exit)
     {
-        // Segoe Fluent Icons: View, Info, Refresh, Link, PowerButton.
+        // Segoe Fluent Icons: View, Info, Refresh, Link, PowerButton. Each
+        // header is a text key, said again when the language changes.
         _menu = new WpfContextMenu
         {
             Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint,
         };
-        _menu.Items.Add(Item("Paneli göster / gizle", "\uE7B3", togglePanel));
-        _menu.Items.Add(Item("Ayrıntıları aç", "\uE946", openDetails));
-        _menu.Items.Add(Item("Yenile", "\uE72C", refresh));
-        _menu.Items.Add(Item("Bağlantılar", "\uE71B", openConnections));
+        _menu.Items.Add(Item("TogglePanel", "\uE7B3", togglePanel));
+        _menu.Items.Add(Item("OpenDetails", "\uE946", openDetails));
+        _menu.Items.Add(Item("Refresh", "\uE72C", refresh));
+        _menu.Items.Add(Item("Connections", "\uE71B", openConnections));
+        _menu.Items.Add(LanguageMenu.Create());
         _menu.Items.Add(new WpfSeparator());
-        _menu.Items.Add(Item("Çıkış", "\uE7E8", exit));
+        _menu.Items.Add(Item("Exit", "\uE7E8", exit));
         _menu.Opened += (_, _) => TakeForeground();
 
         _icon = LoadIcon();
@@ -61,10 +63,11 @@ internal sealed class TrayIcon : IDisposable
         };
     }
 
-    private static WpfMenuItem Item(string header, string glyph, Action action)
+    private static WpfMenuItem Item(string textKey, string glyph, Action action)
     {
-        var item = new WpfMenuItem { Header = header, Icon = glyph };
+        var item = new WpfMenuItem { Header = Localizer.Instance[textKey], Icon = glyph };
         item.Click += (_, _) => action();
+        Localizer.Instance.LanguageChanged += (_, _) => item.Header = Localizer.Instance[textKey];
         return item;
     }
 
