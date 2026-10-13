@@ -27,11 +27,15 @@
           LostMouseCapture="OnLostCapture">
         <Grid.ContextMenu>
             <ContextMenu>
+                <!-- Glyphs: Segoe Fluent Icons Refresh, Link, Hide (Themes/Menus.xaml). -->
                 <MenuItem Header="Yenile"
+                          Icon="&#xE72C;"
                           Command="{Binding RefreshCommand}" />
                 <MenuItem Header="Bağlantılar"
+                          Icon="&#xE71B;"
                           Click="OnConnectionsClick" />
                 <MenuItem Header="Paneli gizle"
+                          Icon="&#xED1A;"
                           Click="OnHideClick" />
                 <Separator />
                 <MenuItem Header="{Binding LastUpdatedText}"
@@ -39,12 +43,11 @@
             </ContextMenu>
         </Grid.ContextMenu>
 
-        <!-- Docked or floating outline; its geometry is built from the window's size. -->
         <!-- One capsule, docked or floating (design.md 4.2). -->
         <Border Background="Black" CornerRadius="32" />
 
-        <!-- Margin + each slot's 15 is the end padding (set in code: docked 46,
-             floating 22); 15 + 15 is the 30 DIP gap between slots. -->
+        <!-- Margin + each slot's 15 is the end padding (set in code: 22);
+             15 + 15 is the 30 DIP gap between slots. -->
         <ItemsControl x:Name="Slots" ItemsSource="{Binding Providers}" Margin="0,31">
             <!-- UI Automation sees each slot through its container, which would
                  otherwise be named after the view model's type. -->

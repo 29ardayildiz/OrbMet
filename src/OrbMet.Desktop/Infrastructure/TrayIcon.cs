@@ -1,16 +1,24 @@
 ﻿using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 using System.Windows.Forms;
+using WpfContextMenu = System.Windows.Controls.ContextMenu;
+using WpfMenuItem = System.Windows.Controls.MenuItem;
+using WpfSeparator = System.Windows.Controls.Separator;
 
 namespace OrbMet.Desktop.Infrastructure;
 
 /// <summary>
 /// The system tray presence. The panel hiding is not the app exiting, so the
-/// menu always offers a way back to the panel and an explicit exit.
+/// menu always offers a way back to the panel and an explicit exit. The menu
+/// is WPF, styled by Themes/Menus.xaml like the strip's, rather than
+/// WinForms' ContextMenuStrip (design.md 10).
 /// </summary>
 internal sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _notifyIcon;
     private readonly Icon _icon;
+    private readonly WpfContextMenu _menu;
     private bool _disposed;
 
     public TrayIcon(
@@ -20,13 +28,18 @@ internal sealed class TrayIcon : IDisposable
         Action refresh,
         Action exit)
     {
-        var menu = new ContextMenuStrip();
-        menu.Items.Add("Paneli göster / gizle", null, (_, _) => togglePanel());
-        menu.Items.Add("Ayrıntıları aç", null, (_, _) => openDetails());
-        menu.Items.Add("Yenile", null, (_, _) => refresh());
-        menu.Items.Add("Bağlantılar", null, (_, _) => openConnections());
-        menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Çıkış", null, (_, _) => exit());
+        // Segoe Fluent Icons: View, Info, Refresh, Link, PowerButton.
+        _menu = new WpfContextMenu
+        {
+            Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint,
+        };
+        _menu.Items.Add(Item("Paneli göster / gizle", "\uE7B3", togglePanel));
+        _menu.Items.Add(Item("Ayrıntıları aç", "\uE946", openDetails));
+        _menu.Items.Add(Item("Yenile", "\uE72C", refresh));
+        _menu.Items.Add(Item("Bağlantılar", "\uE71B", openConnections));
+        _menu.Items.Add(new WpfSeparator());
+        _menu.Items.Add(Item("Çıkış", "\uE7E8", exit));
+        _menu.Opened += (_, _) => TakeForeground();
 
         _icon = LoadIcon();
         _notifyIcon = new NotifyIcon
@@ -34,10 +47,45 @@ internal sealed class TrayIcon : IDisposable
             Icon = _icon,
             Text = "OrbMet",
             Visible = true,
-            ContextMenuStrip = menu,
         };
         _notifyIcon.DoubleClick += (_, _) => togglePanel();
+
+        // A right click, and Shift+F10 or the menu key on a selected icon: the
+        // shell reports both as a right button release for this icon version.
+        _notifyIcon.MouseUp += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                _menu.IsOpen = true;
+            }
+        };
     }
+
+    private static WpfMenuItem Item(string header, string glyph, Action action)
+    {
+        var item = new WpfMenuItem { Header = header, Icon = glyph };
+        item.Click += (_, _) => action();
+        return item;
+    }
+
+    /// <summary>
+    /// A tray menu must own the foreground: otherwise a click elsewhere does
+    /// not close it and the keyboard does not reach it. The shell lets the
+    /// icon's process take the foreground right after the click.
+    /// </summary>
+    private void TakeForeground()
+    {
+        if (System.Windows.PresentationSource.FromVisual(_menu) is HwndSource source)
+        {
+            SetForegroundWindow(source.Handle);
+        }
+
+        _menu.Focus();
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     /// <summary>
     /// The OrbMet mark at the tray's small-icon size, so a scaled display
@@ -64,6 +112,7 @@ internal sealed class TrayIcon : IDisposable
         }
 
         _disposed = true;
+        _menu.IsOpen = false;
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
         _icon.Dispose();
