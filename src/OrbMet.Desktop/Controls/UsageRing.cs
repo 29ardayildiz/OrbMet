@@ -32,13 +32,20 @@ public sealed class UsageRing : FrameworkElement
         nameof(Percent),
         typeof(double?),
         typeof(UsageRing),
-        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnReadingChanged));
 
     public static readonly DependencyProperty IsExhaustedProperty = DependencyProperty.Register(
         nameof(IsExhausted),
         typeof(bool),
         typeof(UsageRing),
-        new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender, OnReadingChanged));
+
+    /// <summary>The share of the circle the arc covers on screen, eased towards the reading.</summary>
+    private static readonly DependencyProperty ShownFractionProperty = DependencyProperty.Register(
+        "ShownFraction",
+        typeof(double),
+        typeof(UsageRing),
+        new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsRender));
 
     public static readonly DependencyProperty MarkProperty = DependencyProperty.Register(
         nameof(Mark),
@@ -205,7 +212,7 @@ public sealed class UsageRing : FrameworkElement
             return null;
         }
 
-        var fraction = UsagePalette.IsSpent(percent, IsExhausted) ? 1.0 : Math.Clamp(percent, 0, 100) / 100.0;
+        var fraction = (double)GetValue(ShownFractionProperty);
         if (fraction <= 0)
         {
             return null;
@@ -290,6 +297,31 @@ public sealed class UsageRing : FrameworkElement
     {
         var radians = degrees * Math.PI / 180.0;
         return new Point(center.X + radius * Math.Cos(radians), center.Y + radius * Math.Sin(radians));
+    }
+
+    /// <summary>How much of the circle a reading fills: all of it when spent.</summary>
+    private double TargetFraction() => Percent is not { } percent
+        ? 0
+        : UsagePalette.IsSpent(percent, IsExhausted) ? 1.0 : Math.Clamp(percent, 0, 100) / 100.0;
+
+    /// <summary>
+    /// A new reading moves the arc from where it is to where it belongs
+    /// (design.md 6.1). Losing the reading removes the arc at once rather
+    /// than draining it, since an empty ring would read as 0%.
+    /// </summary>
+    private static void OnReadingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var ring = (UsageRing)d;
+        var target = ring.TargetFraction();
+
+        if (ring.Percent is null || !Motion.Enabled)
+        {
+            ring.BeginAnimation(ShownFractionProperty, null);
+            ring.SetValue(ShownFractionProperty, target);
+            return;
+        }
+
+        ring.BeginAnimation(ShownFractionProperty, Motion.To(target, Motion.Arc));
     }
 
     private static void OnIsSelectedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

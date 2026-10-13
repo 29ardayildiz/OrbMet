@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using OrbMet.Desktop.Controls;
 using OrbMet.Desktop.Infrastructure;
@@ -13,10 +14,19 @@ namespace OrbMet.Desktop;
 /// </summary>
 public partial class DetailCardWindow : Window
 {
+    /// <summary>
+    /// The ring centre the card is laid out against. Animated when the card
+    /// moves to another ring, so the card and its tail slide together.
+    /// </summary>
+    private static readonly DependencyProperty RingCentreYProperty = DependencyProperty.Register(
+        "RingCentreY",
+        typeof(double),
+        typeof(DetailCardWindow),
+        new PropertyMetadata(0.0, (d, _) => ((DetailCardWindow)d).Place()));
+
     private readonly DispatcherTimer _clock;
     private Rect _strip;
     private Rect _workArea;
-    private double _ringCentreY;
     private bool _opensRight;
     private bool _tailOnRight = true;
 
@@ -56,13 +66,29 @@ public partial class DetailCardWindow : Window
     public void ShowFor(ProviderSlotViewModel slot, Rect strip, double ringCentreY, Rect workArea, bool opensRight)
     {
         slot.UpdateDetails(DateTimeOffset.UtcNow, TimeZoneInfo.Local);
+
+        // Moving from one ring to another is the only change that animates;
+        // opening the card puts it in place at once (design.md 8.1).
+        var switching = IsVisible && !ReferenceEquals(DataContext, slot) && Motion.Enabled;
+
         DataContext = slot;
         _strip = strip;
-        _ringCentreY = ringCentreY;
         _workArea = workArea;
         _opensRight = opensRight;
 
         MaxHeight = Math.Max(0, workArea.Height - 2 * PanelMetrics.WorkAreaMargin);
+
+        if (switching)
+        {
+            Body.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, Motion.CardContent) { EasingFunction = Motion.EaseOut });
+            BeginAnimation(RingCentreYProperty, Motion.To(ringCentreY, Motion.CardMove));
+        }
+        else
+        {
+            Body.BeginAnimation(OpacityProperty, null);
+            BeginAnimation(RingCentreYProperty, null);
+            SetValue(RingCentreYProperty, ringCentreY);
+        }
 
         if (!IsVisible)
         {
@@ -72,8 +98,15 @@ public partial class DetailCardWindow : Window
         Place();
     }
 
+    private double RingCentreY => (double)GetValue(RingCentreYProperty);
+
     private void Place()
     {
+        if (!IsVisible)
+        {
+            return;
+        }
+
         var area = _workArea;
 
         // The preferred side, or the other one when the preferred has no room.
@@ -87,7 +120,7 @@ public partial class DetailCardWindow : Window
         var tailOnRight = !opensRight;
         var left = opensRight ? rightOfStrip : leftOfStrip;
 
-        var top = _ringCentreY - ActualHeight / 2;
+        var top = RingCentreY - ActualHeight / 2;
         top = Math.Min(top, area.Bottom - PanelMetrics.WorkAreaMargin - ActualHeight);
         top = Math.Max(top, area.Top + PanelMetrics.WorkAreaMargin);
 
@@ -102,6 +135,6 @@ public partial class DetailCardWindow : Window
                 : new Thickness(PanelMetrics.CardTailWidth, 0, 0, 0);
         }
 
-        Bubble.Data = DetailBubble.Build(ActualWidth, ActualHeight, _ringCentreY - top, _tailOnRight);
+        Bubble.Data = DetailBubble.Build(ActualWidth, ActualHeight, RingCentreY - top, _tailOnRight);
     }
 }
