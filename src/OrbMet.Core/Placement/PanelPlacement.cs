@@ -46,7 +46,11 @@ public readonly record struct Box(double X, double Y, double Width, double Heigh
 /// <param name="HorizontalRatio">0 = left, 1 = right; used while floating or along the top/bottom.</param>
 /// <param name="VerticalRatio">0 = top, 1 = bottom; used while floating or along a side.</param>
 /// <param name="DisplayId">The display it was left on, or null for the primary.</param>
-public sealed record PanelPosition(PanelDock Dock, double HorizontalRatio, double VerticalRatio, string? DisplayId)
+/// <param name="AcrossLast">
+/// In a corner, the last provider takes the L's horizontal arm instead of the
+/// first, so the rings kept the order of the edge the strip came from.
+/// </param>
+public sealed record PanelPosition(PanelDock Dock, double HorizontalRatio, double VerticalRatio, string? DisplayId, bool AcrossLast = false)
 {
     /// <summary>First run: docked right, vertically centred, on the primary display.</summary>
     public static PanelPosition Default { get; } = new(PanelDock.Right, 1, 0.5, null);
@@ -197,6 +201,38 @@ public static class PanelLayout
         var (minX, spanX) = InsetRange(workArea.X, workArea.Width, railWidth);
         var (minY, spanY) = InsetRange(workArea.Y, workArea.Height, railHeight);
         return (Ratio(x - minX, spanX), Ratio(y - minY, spanY));
+    }
+
+    /// <summary>
+    /// Which of several arrangements of the same rings is reached with the
+    /// least travel from where they are now (by summed squared distance), so
+    /// rings moving into a new outline do not pass over each other.
+    /// </summary>
+    public static int NearestArrangement(IReadOnlyList<(double X, double Y)> from, IReadOnlyList<IReadOnlyList<(double X, double Y)>> candidates)
+    {
+        ArgumentNullException.ThrowIfNull(from);
+        ArgumentNullException.ThrowIfNull(candidates);
+
+        var best = 0;
+        var bestTravel = double.PositiveInfinity;
+        for (var c = 0; c < candidates.Count; c++)
+        {
+            var travel = 0.0;
+            for (var i = 0; i < Math.Min(from.Count, candidates[c].Count); i++)
+            {
+                var dx = candidates[c][i].X - from[i].X;
+                var dy = candidates[c][i].Y - from[i].Y;
+                travel += dx * dx + dy * dy;
+            }
+
+            if (travel < bestTravel)
+            {
+                best = c;
+                bestTravel = travel;
+            }
+        }
+
+        return best;
     }
 
     /// <summary>Keeps a top-left inside the work area for a strip of the given size.</summary>

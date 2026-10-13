@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     private readonly PanelPositionStore _positionStore;
     private PanelPosition _position;
     private PanelDock _shownDock;
+    private bool _acrossLast;
     private PanelPlan _plan = null!;
     private readonly List<SlotView> _slotViews = new();
     private ConnectionsWindow? _connectionsWindow;
@@ -40,16 +41,26 @@ public partial class MainWindow : Window
     private bool _pressed;
     private bool _dragging;
     private Point _pressPoint;
+    private Point _lastPointer;
     private Vector _grab;
     private ProviderSlotViewModel? _pressedRing;
     private PanelPosition? _dragPosition;
 
-    // A change of outline in progress: the pose it started from, the strip's
-    // place once it ends, and the box the window covers until then.
-    private StripPose? _reshapeFrom;
+    // The window is larger than any outline and keeps one size: the strip is
+    // drawn inside it with clear room all round. A window that moves while
+    // its drawing changes shows the old drawing at the new place for a frame,
+    // so the two never change together by more than a few DIPs.
+    private readonly Size _windowSize;
+    private Point _windowAt;
+    private Vector _inset;
+
+    // The strip's top-left on screen; while the outline changes, where it is heading.
     private Point _origin;
-    private Rect _reshapeBox;
+
+    // A change of outline in progress and the pose it started from.
+    private StripPose? _reshapeFrom;
     private readonly Stopwatch _reshapeClock = new();
+    private TimeSpan _lastFrame;
     private bool _exitRequested;
     private bool _cleanedUp;
 
@@ -67,6 +78,7 @@ public partial class MainWindow : Window
         _positionStore = new PanelPositionStore(paths.PanelPositionFile);
         _position = _positionStore.Load();
         _shownDock = _position.Dock;
+        _acrossLast = _position.AcrossLast;
 
         _viewModel = new PanelViewModel(coordinator);
         DataContext = _viewModel;
@@ -79,7 +91,9 @@ public partial class MainWindow : Window
             SlotLayer.Children.Add(view);
         }
 
-        ShowDock(_shownDock);
+        _windowSize = RoomyWindowSize(SlotCount);
+        UsePlan(_shownDock, _acrossLast);
+        ShowPlanAt(default, centre: true);
 
         _tray = new TrayIcon(
             togglePanel: TogglePanel,
@@ -122,34 +136,68 @@ public partial class MainWindow : Window
         }
 
         var (area, _) = Displays.For(_position.DisplayId, this);
-        ShowDock(_position.Dock);
-        var (x, y) = PanelLayout.RailOrigin(_position, area, Width, Height);
-        Left = x;
-        Top = y;
+        UsePlan(_position.Dock, _position.AcrossLast);
+        var (x, y) = PanelLayout.RailOrigin(_position, area, _plan.Size.Width, _plan.Size.Height);
+        ShowPlanAt(new Point(x, y), centre: true);
+    }
+
+    /// <summary>The largest outline with <see cref="PanelMetrics.WindowRoom"/> on every side.</summary>
+    private static Size RoomyWindowSize(int slots)
+    {
+        var sizes = new[] { PanelDock.Right, PanelDock.Top, PanelDock.TopRight }
+            .Select(dock => PanelOutline.For(dock, slots).Size)
+            .ToList();
+        return new Size(
+            sizes.Max(size => size.Width) + 2 * PanelMetrics.WindowRoom,
+            sizes.Max(size => size.Height) + 2 * PanelMetrics.WindowRoom);
     }
 
     /// <summary>
-    /// Draws the strip for a dock at once (design.md 4.2): its size, outline
-    /// and where each provider sits. Ends any change of outline in progress.
+    /// Takes the drawing for a dock (design.md 4.2): its size, outline and
+    /// where each provider sits. Ends any change of outline in progress;
+    /// nothing on screen changes until it is shown.
     /// </summary>
-    private void ShowDock(PanelDock dock)
+    private void UsePlan(PanelDock dock, bool acrossLast)
     {
         StopReshape();
-        _plan = PanelOutline.For(dock, SlotCount);
+        _plan = PanelOutline.For(dock, SlotCount, acrossLast);
         _shownDock = dock;
-        Width = _plan.Size.Width;
-        Height = _plan.Size.Height;
-        Outline.Data = _plan.Outline;
-        Draw(StripPose.Of(_plan, default), drawOutline: false);
+        _acrossLast = acrossLast;
     }
 
-    /// <summary>Puts each slot, and the outline unless it is already set, where a pose has them in the window.</summary>
-    private void Draw(StripPose pose, bool drawOutline = true)
+    /// <summary>
+    /// Shows the plan with its top-left at <paramref name="origin"/>: in the
+    /// middle of the window when <paramref name="centre"/>, otherwise where it
+    /// already sits in it, so only the window moves.
+    /// </summary>
+    private void ShowPlanAt(Point origin, bool centre)
     {
-        if (drawOutline)
+        StopReshape();
+        _origin = origin;
+        if (centre || !new Rect(_windowSize).Contains(new Rect(new Point(_inset.X, _inset.Y), _plan.Size)))
         {
-            Outline.Data = PanelOutline.Bars(pose.Horizontal, pose.Vertical);
+            _inset = CentredInset();
         }
+
+        MoveWindow(origin - _inset);
+        Draw(StripPose.Of(_plan, new Point(_inset.X, _inset.Y)));
+    }
+
+    private Vector CentredInset() =>
+        new((_windowSize.Width - _plan.Size.Width) / 2, (_windowSize.Height - _plan.Size.Height) / 2);
+
+    private static double Creep(double wanted) => Math.Clamp(wanted, -PanelMetrics.WindowCreep, PanelMetrics.WindowCreep);
+
+    private void MoveWindow(Point at)
+    {
+        _windowAt = at;
+        WindowBounds.Set(this, new Rect(at, _windowSize));
+    }
+
+    /// <summary>Draws the outline and puts each slot where a pose, in window DIPs, has them.</summary>
+    private void Draw(StripPose pose)
+    {
+        Outline.Data = PanelOutline.Bars(pose.Horizontal, pose.Vertical);
 
         for (var i = 0; i < _slotViews.Count && i < pose.Slots.Count; i++)
         {
@@ -167,30 +215,33 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Where the strip is drawn right now, in screen DIPs: part way through a
-    /// change of outline, or the plan at the window's place.
+    /// change of outline, or the plan at its place.
     /// </summary>
     private StripPose ShownPose() => _reshapeFrom is { } from
         ? StripPose.Between(from, StripPose.Of(_plan, _origin), ReshapeProgress())
-        : StripPose.Of(_plan, new Point(Left, Top));
+        : StripPose.Of(_plan, _origin);
 
     private double ReshapeProgress() =>
         Motion.EaseOut.Ease(Math.Min(_reshapeClock.Elapsed / Motion.Reshape.TimeSpan, 1));
 
     /// <summary>
     /// Stretches the strip from <paramref name="from"/> into the current plan
-    /// at <see cref="_origin"/>, which a drag may keep moving meanwhile. The
-    /// window covers both, with room to spare, so it rarely has to move.
+    /// at <see cref="_origin"/>, which a drag may keep moving meanwhile.
     /// </summary>
     private void BeginReshape(StripPose from)
     {
         _reshapeFrom = from;
-        _reshapeBox = Rect.Empty;
         _reshapeClock.Restart();
         CompositionTarget.Rendering -= OnReshapeFrame;
         CompositionTarget.Rendering += OnReshapeFrame;
         OnReshapeFrame(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// One frame of the change: the drawing moves inside the window, and the
+    /// window creeps at most <see cref="PanelMetrics.WindowCreep"/> per frame
+    /// towards keeping the strip in its middle, which no one sees.
+    /// </summary>
     private void OnReshapeFrame(object? sender, EventArgs e)
     {
         if (_reshapeFrom is not { } from)
@@ -198,28 +249,45 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Rendering can be raised more than once for one frame; the window
+        // must creep once per frame, not once per call.
+        if (e is RenderingEventArgs { RenderingTime: var frame })
+        {
+            if (frame == _lastFrame)
+            {
+                return;
+            }
+
+            _lastFrame = frame;
+        }
+
         if (_reshapeClock.Elapsed >= Motion.Reshape.TimeSpan)
         {
-            ShowDock(_shownDock);
-            Left = _origin.X;
-            Top = _origin.Y;
+            // The strip stays where the change left it in the window.
+            _inset = _origin - _windowAt;
+            ShowPlanAt(_origin, centre: false);
             return;
         }
 
-        var target = StripPose.Of(_plan, _origin);
-        var pose = StripPose.Between(from, target, ReshapeProgress());
-        if (!_reshapeBox.Contains(pose.Bounds))
+        var pose = StripPose.Between(from, StripPose.Of(_plan, _origin), ReshapeProgress());
+        var bounds = pose.Bounds;
+        var middle = new Point(
+            bounds.X + bounds.Width / 2 - _windowSize.Width / 2,
+            bounds.Y + bounds.Height / 2 - _windowSize.Height / 2);
+        var at = new Point(_windowAt.X + Creep(middle.X - _windowAt.X), _windowAt.Y + Creep(middle.Y - _windowAt.Y));
+
+        // Only if the strip would leave the window does it jump to the middle.
+        if (!new Rect(at, _windowSize).Contains(bounds))
         {
-            var box = Rect.Union(Rect.Union(pose.Bounds, from.Bounds), target.Bounds);
-            box.Inflate(PanelMetrics.StripWidth, PanelMetrics.StripWidth);
-            _reshapeBox = box;
-            Left = box.X;
-            Top = box.Y;
-            Width = box.Width;
-            Height = box.Height;
+            at = middle;
         }
 
-        Draw(pose.Offset(new Vector(-_reshapeBox.X, -_reshapeBox.Y)));
+        if (at != _windowAt)
+        {
+            MoveWindow(at);
+        }
+
+        Draw(pose.Offset(new Vector(-at.X, -at.Y)));
     }
 
     private void StopReshape()
@@ -252,7 +320,8 @@ public partial class MainWindow : Window
         _dragging = false;
         _dragPosition = null;
         _pressPoint = pointer;
-        _grab = pointer - new Point(Left, Top);
+        _lastPointer = pointer;
+        _grab = pointer - _origin;
         _pressedRing = FindRing(e.OriginalSource as DependencyObject)?.DataContext as ProviderSlotViewModel;
         Root.CaptureMouse();
         e.Handled = true;
@@ -265,11 +334,14 @@ public partial class MainWindow : Window
     /// </summary>
     private void OnPointerMove(object sender, MouseEventArgs e)
     {
-        if (!_pressed || PointerPosition.InDips(this) is not { } pointer)
+        // Moving the window under a still pointer raises a move of its own;
+        // only a pointer that went somewhere counts.
+        if (!_pressed || PointerPosition.InDips(this) is not { } pointer || pointer == _lastPointer)
         {
             return;
         }
 
+        _lastPointer = pointer;
         if (!_dragging)
         {
             if ((pointer - _pressPoint).Length < PanelMetrics.DragThreshold)
@@ -288,7 +360,7 @@ public partial class MainWindow : Window
         {
             from = ShownPose();
             var before = _plan.Size;
-            ShowDock(dock);
+            UsePlan(dock, _acrossLast);
 
             // A new outline has nothing in common with where the old one was
             // held, so it is carried by its middle from here on.
@@ -303,20 +375,43 @@ public partial class MainWindow : Window
         var (x, y) = PanelLayout.DragOrigin(dock, wanted.X, wanted.Y, area, size.Width, size.Height);
         _origin = new Point(x, y);
 
+        // Into a corner the rings keep the order of the edge they came from:
+        // whichever arrangement of the L they reach with the least travel.
+        if (from is not null && PanelLayout.ShapeOf(dock) == PanelShape.Corner)
+        {
+            var arrangements = new[] { false, true }
+                .Select(last => StripPose.Of(PanelOutline.For(dock, SlotCount, last), _origin).Centres())
+                .ToList();
+            UsePlan(dock, PanelLayout.NearestArrangement(from.Centres(), arrangements) == 1);
+        }
+
         // The strip stretches into its new outline; while it does, each frame
-        // follows _origin instead of the window moving here.
+        // follows _origin. Otherwise only the window moves, its drawing as it is.
         if (from is not null && Motion.Enabled)
         {
             BeginReshape(from);
         }
+        else if (from is not null)
+        {
+            ShowPlanAt(_origin, centre: true);
+        }
         else if (!Reshaping)
         {
-            Left = x;
-            Top = y;
+            // The strip creeps back towards the window's middle while it is
+            // carried, a step too small to see, so later changes have room.
+            var centred = CentredInset();
+            var step = new Vector(Creep(centred.X - _inset.X), Creep(centred.Y - _inset.Y));
+            if (step != default)
+            {
+                _inset += step;
+                Draw(StripPose.Of(_plan, new Point(_inset.X, _inset.Y)));
+            }
+
+            MoveWindow(_origin - _inset);
         }
 
         var (horizontal, vertical) = PanelLayout.Ratios(dock, x, y, area, size.Width, size.Height);
-        _dragPosition = new PanelPosition(dock, horizontal, vertical, displayId);
+        _dragPosition = new PanelPosition(dock, horizontal, vertical, displayId, _acrossLast);
     }
 
     private void OnRelease(object sender, MouseButtonEventArgs e)
@@ -421,8 +516,8 @@ public partial class MainWindow : Window
         }
 
         var centre = ring.TranslatePoint(new Point(ring.ActualWidth / 2, ring.ActualHeight / 2), this);
-        var ringCentre = new Point(Left + centre.X, Top + centre.Y);
-        var strip = new Rect(Left, Top, Width, Height);
+        var ringCentre = new Point(_windowAt.X + centre.X, _windowAt.Y + centre.Y);
+        var strip = new Rect(_origin, _plan.Size);
         var (area, _) = Displays.At(new Point(strip.X + strip.Width / 2, strip.Y + strip.Height / 2), this);
         var bounds = new Rect(area.X, area.Y, area.Width, area.Height);
 
@@ -430,7 +525,7 @@ public partial class MainWindow : Window
         var index = _viewModel.Providers.IndexOf(slot);
         var onHorizontalArm = index >= 0 && index < plan.Slots.Count && plan.Slots[index].PercentBeside;
         var arm = onHorizontalArm ? plan.HorizontalArm : plan.VerticalArm;
-        arm.Offset(Left, Top);
+        arm.Offset(_origin.X, _origin.Y);
 
         // The card opens into the screen, away from the edges the strip is on.
         var dock = _shownDock;
@@ -456,7 +551,7 @@ public partial class MainWindow : Window
         if (PanelLayout.ShapeOf(dock) == PanelShape.Corner)
         {
             var other = onHorizontalArm ? plan.VerticalArm : plan.HorizontalArm;
-            other.Offset(Left, Top);
+            other.Offset(_origin.X, _origin.Y);
             bounds = Clear(bounds, other, onHorizontalArm);
         }
 
@@ -493,7 +588,7 @@ public partial class MainWindow : Window
 
         // The strip is its drawn outline, not its window: the empty quarter
         // of an L's box is the desktop.
-        var onStrip = _plan.Outline.FillContains(new Point(pointer.X - Left, pointer.Y - Top));
+        var onStrip = _plan.Outline.FillContains(new Point(pointer.X - _origin.X, pointer.Y - _origin.Y));
 
         // The card's rect is widened over the gap so crossing it never closes the card.
         var card = new Rect(_card.Left, _card.Top, _card.ActualWidth, _card.ActualHeight);

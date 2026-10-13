@@ -61,6 +61,20 @@ public static class PanelMetrics
 
     public const double WorkAreaMargin = 8;
 
+    /// <summary>
+    /// Clear room the panel window keeps around the largest outline, so a
+    /// change of outline can stretch inside it (design.md 8.2). Transparent,
+    /// so the pointer passes through it.
+    /// </summary>
+    public const double WindowRoom = 220;
+
+    /// <summary>
+    /// How far the window may move against its drawing in one frame. The
+    /// drawing reaches the screen a frame after the window moves, so this is
+    /// also how far the strip can appear off its place for that frame.
+    /// </summary>
+    public const double WindowCreep = 2;
+
     public const double CardWidth = 250;
     public const double CardPadding = 18;
 

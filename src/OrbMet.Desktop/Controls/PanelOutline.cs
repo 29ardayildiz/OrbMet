@@ -23,13 +23,14 @@ internal sealed record PanelPlan(Size Size, Geometry Outline, IReadOnlyList<Slot
 /// </summary>
 internal static class PanelOutline
 {
-    public static PanelPlan For(PanelDock dock, int slots)
+    /// <param name="acrossLast">In a corner, the last slot takes the horizontal arm instead of the first.</param>
+    public static PanelPlan For(PanelDock dock, int slots, bool acrossLast = false)
     {
         var count = Math.Max(slots, 1);
         return PanelLayout.ShapeOf(dock) switch
         {
             PanelShape.Horizontal => Horizontal(count),
-            PanelShape.Corner when count >= 2 => Corner(count, PanelLayout.IsLeft(dock), PanelLayout.IsBottom(dock)),
+            PanelShape.Corner when count >= 2 => Corner(count, PanelLayout.IsLeft(dock), PanelLayout.IsBottom(dock), acrossLast),
             _ => Vertical(count),
         };
     }
@@ -61,10 +62,10 @@ internal static class PanelOutline
 
     /// <summary>
     /// The L for the top-right corner, then mirrored: a horizontal arm along
-    /// the top holding the first slot, the corner block, and a vertical arm
-    /// down the side holding the rest.
+    /// the top holding the first slot (or the last), the corner block, and a
+    /// vertical arm down the side holding the rest in order.
     /// </summary>
-    private static PanelPlan Corner(int count, bool left, bool bottom)
+    private static PanelPlan Corner(int count, bool left, bool bottom, bool acrossLast)
     {
         var t = PanelMetrics.StripWidth;
         var w = PanelMetrics.BesideEndPadding + PanelMetrics.BesideSlotWidth + PanelMetrics.CornerArmGap + t;
@@ -79,6 +80,12 @@ internal static class PanelOutline
         {
             var y = t + PanelMetrics.CornerArmGap + (k - 1) * (PanelMetrics.SlotHeight + PanelMetrics.SlotSpacing);
             frames.Add(new SlotFrame(new Rect(w - t, y, t, PanelMetrics.SlotHeight), PercentBeside: false));
+        }
+
+        if (acrossLast)
+        {
+            // The last slot takes the arm's place; the others move up one.
+            frames = frames.Skip(1).Append(frames[0]).ToList();
         }
 
         var horizontalArm = new Rect(0, 0, w, t);
@@ -199,6 +206,13 @@ internal sealed record StripPose(Rect Horizontal, Rect Vertical, IReadOnlyList<(
     }
 
     public Rect Bounds => Rect.Union(Horizontal, Vertical);
+
+    /// <summary>Each slot's ring centre, in slot order.</summary>
+    public IReadOnlyList<(double X, double Y)> Centres() => Slots
+        .Select(s => s.Beside > 0.5
+            ? (s.Frame.X + PanelMetrics.RingDiameter / 2, s.Frame.Y + s.Frame.Height / 2)
+            : (s.Frame.X + s.Frame.Width / 2, s.Frame.Y + PanelMetrics.RingDiameter / 2))
+        .ToList();
 
     /// <summary>
     /// The pose a fraction <paramref name="t"/> of the way from one to the

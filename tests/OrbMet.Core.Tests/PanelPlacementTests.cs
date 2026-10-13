@@ -166,6 +166,40 @@ public class PanelPlacementTests
     }
 
     [Fact]
+    public void StoreKeepsTheCornerOrder()
+    {
+        using var temp = new TempDirectory();
+        var store = new PanelPositionStore(Path.Combine(temp.Path, "panel.json"));
+        var position = new PanelPosition(PanelDock.BottomLeft, 0, 1, null, AcrossLast: true);
+
+        Assert.True(store.Save(position));
+        Assert.Equal(position, store.Load());
+    }
+
+    [Fact]
+    public void AFileFromBeforeTheCornerOrderReadsAsFirstAcross()
+    {
+        using var temp = new TempDirectory();
+        var path = Path.Combine(temp.Path, "panel.json");
+        File.WriteAllText(path, """{ "Dock": "TopRight", "HorizontalRatio": 1, "VerticalRatio": 0, "DisplayId": null }""");
+
+        Assert.Equal(new PanelPosition(PanelDock.TopRight, 1, 0, null), new PanelPositionStore(path).Load());
+    }
+
+    [Fact]
+    public void RingsTakeTheArrangementTheyReachWithoutCrossing()
+    {
+        // A horizontal capsule along the bottom, Claude left of Codex, moving
+        // into the bottom-left L: Codex is nearer the vertical arm's slot.
+        var now = new List<(double X, double Y)> { (40, 1040), (138, 1040) };
+        var claudeAcross = new List<(double X, double Y)> { (110, 1040), (40, 950) };
+        var codexAcross = new List<(double X, double Y)> { (40, 950), (110, 1040) };
+
+        Assert.Equal(1, PanelLayout.NearestArrangement(now, new[] { claudeAcross, codexAcross }));
+        Assert.Equal(0, PanelLayout.NearestArrangement(now, new[] { codexAcross, claudeAcross }));
+    }
+
+    [Fact]
     public void MissingOrBrokenFileMeansTheDefaultPlace()
     {
         using var temp = new TempDirectory();
