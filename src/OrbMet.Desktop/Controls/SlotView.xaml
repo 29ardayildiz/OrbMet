@@ -7,13 +7,11 @@
              AutomationProperties.Name="{Binding AccessibleText}">
     <!-- One provider on the strip: its ring and percentage. The percentage
          sits under the ring on a vertical strip and beside it on a horizontal
-         one; SlotView.PercentBeside moves it. -->
-    <Grid>
+         one; SlotView.Beside places both, and slides them between the two. -->
+    <Canvas>
         <controls:UsageRing x:Name="Ring"
                             Width="{x:Static infra:PanelMetrics.RingDiameter}"
                             Height="{x:Static infra:PanelMetrics.RingDiameter}"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Top"
                             Percent="{Binding RingPercent}"
                             IsExhausted="{Binding IsExhausted}"
                             IsSelected="{Binding IsSelected}"
@@ -24,9 +22,7 @@
                    Height="{x:Static infra:PanelMetrics.PercentHeight}"
                    FontSize="13"
                    FontWeight="Medium"
-                   Typography.NumeralAlignment="Tabular"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Top">
+                   Typography.NumeralAlignment="Tabular">
             <TextBlock.Style>
                 <Style TargetType="TextBlock">
                     <Setter Property="Foreground" Value="White" />
@@ -44,5 +40,5 @@
                 </Style>
             </TextBlock.Style>
         </TextBlock>
-    </Grid>
+    </Canvas>
 </UserControl>

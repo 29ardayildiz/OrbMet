@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -30,7 +31,7 @@ public partial class MainWindow : Window
     private readonly PanelPositionStore _positionStore;
     private PanelPosition _position;
     private PanelDock _shownDock;
-    private PanelPlan? _plan;
+    private PanelPlan _plan = null!;
     private readonly List<SlotView> _slotViews = new();
     private ConnectionsWindow? _connectionsWindow;
     private DetailsWindow? _detailsWindow;
@@ -42,6 +43,13 @@ public partial class MainWindow : Window
     private Vector _grab;
     private ProviderSlotViewModel? _pressedRing;
     private PanelPosition? _dragPosition;
+
+    // A change of outline in progress: the pose it started from, the strip's
+    // place once it ends, and the box the window covers until then.
+    private StripPose? _reshapeFrom;
+    private Point _origin;
+    private Rect _reshapeBox;
+    private readonly Stopwatch _reshapeClock = new();
     private bool _exitRequested;
     private bool _cleanedUp;
 
@@ -121,29 +129,103 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Draws the strip for a dock (design.md 4.2): its size, outline and where
-    /// each provider sits.
+    /// Draws the strip for a dock at once (design.md 4.2): its size, outline
+    /// and where each provider sits. Ends any change of outline in progress.
     /// </summary>
     private void ShowDock(PanelDock dock)
     {
-        var plan = PanelOutline.For(dock, SlotCount);
-        Width = plan.Size.Width;
-        Height = plan.Size.Height;
-        Outline.Data = plan.Outline;
+        StopReshape();
+        _plan = PanelOutline.For(dock, SlotCount);
+        _shownDock = dock;
+        Width = _plan.Size.Width;
+        Height = _plan.Size.Height;
+        Outline.Data = _plan.Outline;
+        Draw(StripPose.Of(_plan, default), drawOutline: false);
+    }
 
-        for (var i = 0; i < _slotViews.Count && i < plan.Slots.Count; i++)
+    /// <summary>Puts each slot, and the outline unless it is already set, where a pose has them in the window.</summary>
+    private void Draw(StripPose pose, bool drawOutline = true)
+    {
+        if (drawOutline)
         {
-            var (bounds, beside) = (plan.Slots[i].Bounds, plan.Slots[i].PercentBeside);
-            var view = _slotViews[i];
-            System.Windows.Controls.Canvas.SetLeft(view, bounds.X);
-            System.Windows.Controls.Canvas.SetTop(view, bounds.Y);
-            view.Width = bounds.Width;
-            view.Height = bounds.Height;
-            view.PercentBeside = beside;
+            Outline.Data = PanelOutline.Bars(pose.Horizontal, pose.Vertical);
         }
 
-        _plan = plan;
-        _shownDock = dock;
+        for (var i = 0; i < _slotViews.Count && i < pose.Slots.Count; i++)
+        {
+            var (frame, beside) = pose.Slots[i];
+            var view = _slotViews[i];
+            System.Windows.Controls.Canvas.SetLeft(view, frame.X);
+            System.Windows.Controls.Canvas.SetTop(view, frame.Y);
+            view.Width = frame.Width;
+            view.Height = frame.Height;
+            view.Beside = beside;
+        }
+    }
+
+    private bool Reshaping => _reshapeFrom is not null;
+
+    /// <summary>
+    /// Where the strip is drawn right now, in screen DIPs: part way through a
+    /// change of outline, or the plan at the window's place.
+    /// </summary>
+    private StripPose ShownPose() => _reshapeFrom is { } from
+        ? StripPose.Between(from, StripPose.Of(_plan, _origin), ReshapeProgress())
+        : StripPose.Of(_plan, new Point(Left, Top));
+
+    private double ReshapeProgress() =>
+        Motion.EaseOut.Ease(Math.Min(_reshapeClock.Elapsed / Motion.Reshape.TimeSpan, 1));
+
+    /// <summary>
+    /// Stretches the strip from <paramref name="from"/> into the current plan
+    /// at <see cref="_origin"/>, which a drag may keep moving meanwhile. The
+    /// window covers both, with room to spare, so it rarely has to move.
+    /// </summary>
+    private void BeginReshape(StripPose from)
+    {
+        _reshapeFrom = from;
+        _reshapeBox = Rect.Empty;
+        _reshapeClock.Restart();
+        CompositionTarget.Rendering -= OnReshapeFrame;
+        CompositionTarget.Rendering += OnReshapeFrame;
+        OnReshapeFrame(this, EventArgs.Empty);
+    }
+
+    private void OnReshapeFrame(object? sender, EventArgs e)
+    {
+        if (_reshapeFrom is not { } from)
+        {
+            return;
+        }
+
+        if (_reshapeClock.Elapsed >= Motion.Reshape.TimeSpan)
+        {
+            ShowDock(_shownDock);
+            Left = _origin.X;
+            Top = _origin.Y;
+            return;
+        }
+
+        var target = StripPose.Of(_plan, _origin);
+        var pose = StripPose.Between(from, target, ReshapeProgress());
+        if (!_reshapeBox.Contains(pose.Bounds))
+        {
+            var box = Rect.Union(Rect.Union(pose.Bounds, from.Bounds), target.Bounds);
+            box.Inflate(PanelMetrics.StripWidth, PanelMetrics.StripWidth);
+            _reshapeBox = box;
+            Left = box.X;
+            Top = box.Y;
+            Width = box.Width;
+            Height = box.Height;
+        }
+
+        Draw(pose.Offset(new Vector(-_reshapeBox.X, -_reshapeBox.Y)));
+    }
+
+    private void StopReshape()
+    {
+        _reshapeFrom = null;
+        CompositionTarget.Rendering -= OnReshapeFrame;
     }
 
     private void OnSystemParameterChanged(object? sender, PropertyChangedEventArgs e)
@@ -201,26 +283,39 @@ public partial class MainWindow : Window
 
         var (area, displayId) = Displays.At(pointer, this);
         var dock = PanelLayout.DockFor(pointer.X, pointer.Y, area);
+        StripPose? from = null;
         if (dock != _shownDock)
         {
-            var before = new Size(Width, Height);
+            from = ShownPose();
+            var before = _plan.Size;
             ShowDock(dock);
 
             // A new outline has nothing in common with where the old one was
             // held, so it is carried by its middle from here on.
-            if (before != new Size(Width, Height))
+            if (before != _plan.Size)
             {
-                _grab = new Vector(Width / 2, Height / 2);
+                _grab = new Vector(_plan.Size.Width / 2, _plan.Size.Height / 2);
             }
         }
 
+        var size = _plan.Size;
         var wanted = pointer - _grab;
-        var (x, y) = PanelLayout.DragOrigin(dock, wanted.X, wanted.Y, area, Width, Height);
+        var (x, y) = PanelLayout.DragOrigin(dock, wanted.X, wanted.Y, area, size.Width, size.Height);
+        _origin = new Point(x, y);
 
-        Left = x;
-        Top = y;
+        // The strip stretches into its new outline; while it does, each frame
+        // follows _origin instead of the window moving here.
+        if (from is not null && Motion.Enabled)
+        {
+            BeginReshape(from);
+        }
+        else if (!Reshaping)
+        {
+            Left = x;
+            Top = y;
+        }
 
-        var (horizontal, vertical) = PanelLayout.Ratios(dock, x, y, area, Width, Height);
+        var (horizontal, vertical) = PanelLayout.Ratios(dock, x, y, area, size.Width, size.Height);
         _dragPosition = new PanelPosition(dock, horizontal, vertical, displayId);
     }
 
@@ -301,7 +396,8 @@ public partial class MainWindow : Window
     /// <summary>Entering a ring's circle opens its card at once, or swaps an open card to it.</summary>
     private void OnRingMouseEnter(object sender, MouseEventArgs e)
     {
-        if (_pressed)
+        // Mid-change the rings are not where the card would be laid out against.
+        if (_pressed || Reshaping)
         {
             return;
         }
@@ -330,7 +426,7 @@ public partial class MainWindow : Window
         var (area, _) = Displays.At(new Point(strip.X + strip.Width / 2, strip.Y + strip.Height / 2), this);
         var bounds = new Rect(area.X, area.Y, area.Width, area.Height);
 
-        var plan = _plan ?? PanelOutline.For(_shownDock, SlotCount);
+        var plan = _plan;
         var index = _viewModel.Providers.IndexOf(slot);
         var onHorizontalArm = index >= 0 && index < plan.Slots.Count && plan.Slots[index].PercentBeside;
         var arm = onHorizontalArm ? plan.HorizontalArm : plan.VerticalArm;
@@ -397,7 +493,7 @@ public partial class MainWindow : Window
 
         // The strip is its drawn outline, not its window: the empty quarter
         // of an L's box is the desktop.
-        var onStrip = _plan?.Outline.FillContains(new Point(pointer.X - Left, pointer.Y - Top)) ?? false;
+        var onStrip = _plan.Outline.FillContains(new Point(pointer.X - Left, pointer.Y - Top));
 
         // The card's rect is widened over the gap so crossing it never closes the card.
         var card = new Rect(_card.Left, _card.Top, _card.ActualWidth, _card.ActualHeight);
@@ -494,6 +590,7 @@ public partial class MainWindow : Window
         }
 
         _cleanedUp = true;
+        StopReshape();
         SystemParameters.StaticPropertyChanged -= OnSystemParameterChanged;
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         _pointerSampler.Stop();

@@ -19,6 +19,12 @@ internal static class Motion
     /// <summary>The card sliding along the strip to another ring.</summary>
     public static readonly Duration CardMove = new(TimeSpan.FromSeconds(0.28));
 
+    /// <summary>
+    /// The strip stretching from one outline to another when a drag fuses it
+    /// to an edge or corner, or frees it.
+    /// </summary>
+    public static readonly Duration Reshape = new(TimeSpan.FromSeconds(0.22));
+
     public static readonly IEasingFunction EaseOut = CreateEaseOut();
 
     /// <summary>

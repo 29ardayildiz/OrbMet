@@ -84,18 +84,15 @@ internal static class PanelOutline
         var horizontalArm = new Rect(0, 0, w, t);
         var verticalArm = new Rect(w - t, 0, t, h);
 
-        var outline = TopRightL(w, h, t);
         if (left || bottom)
         {
-            // Mirror the drawing and every frame across the strip's own box.
-            var flip = new MatrixTransform(left ? -1 : 1, 0, 0, bottom ? -1 : 1, left ? w : 0, bottom ? h : 0);
-            outline = Transformed(outline, flip);
+            // Mirror every frame and both arms across the strip's own box.
             frames = frames.Select(f => f with { Bounds = Mirror(f.Bounds, size, left, bottom) }).ToList();
             horizontalArm = Mirror(horizontalArm, size, left, bottom);
             verticalArm = Mirror(verticalArm, size, left, bottom);
         }
 
-        return new PanelPlan(size, outline, frames, horizontalArm, verticalArm);
+        return new PanelPlan(size, Bars(horizontalArm, verticalArm), frames, horizontalArm, verticalArm);
     }
 
     private static Geometry Capsule(Size size)
@@ -107,36 +104,74 @@ internal static class PanelOutline
     }
 
     /// <summary>
-    /// Clockwise from the horizontal arm's free end: its rounded end, the
-    /// outer corner, the vertical arm's rounded end, then the soft inner corner.
+    /// The strip drawn as its two arms, each a capsule, joined by a soft
+    /// concave corner where one runs past the other. This draws the L and
+    /// every shape the strip passes through while it changes (design.md 4.2);
+    /// an empty arm is left out.
     /// </summary>
-    private static Geometry TopRightL(double w, double h, double t)
+    public static Geometry Bars(Rect horizontal, Rect vertical)
     {
-        var r = t / 2;
-        var inner = PanelMetrics.CornerInnerRadius;
-        var figure = new PathFigure { StartPoint = new Point(r, 0), IsClosed = true, IsFilled = true };
-        figure.Segments.Add(new LineSegment(new Point(w - r, 0), true));
-        figure.Segments.Add(new ArcSegment(new Point(w, r), new Size(r, r), 0, false, SweepDirection.Clockwise, true));
-        figure.Segments.Add(new LineSegment(new Point(w, h - r), true));
-        figure.Segments.Add(new ArcSegment(new Point(w - t, h - r), new Size(r, r), 0, false, SweepDirection.Clockwise, true));
-        figure.Segments.Add(new LineSegment(new Point(w - t, t + inner), true));
-        figure.Segments.Add(new ArcSegment(new Point(w - t - inner, t), new Size(inner, inner), 0, false, SweepDirection.Counterclockwise, true));
-        figure.Segments.Add(new LineSegment(new Point(r, t), true));
-        figure.Segments.Add(new ArcSegment(new Point(r, 0), new Size(r, r), 0, false, SweepDirection.Clockwise, true));
+        var group = new GeometryGroup { FillRule = FillRule.Nonzero };
+        foreach (var bar in new[] { horizontal, vertical })
+        {
+            if (!bar.IsEmpty)
+            {
+                var radius = Math.Min(bar.Width, bar.Height) / 2;
+                group.Children.Add(new RectangleGeometry(bar, radius, radius));
+            }
+        }
+
+        if (Fillet(horizontal, vertical) is { } fillet)
+        {
+            group.Children.Add(fillet);
+        }
+
+        group.Freeze();
+        return group;
+    }
+
+    /// <summary>
+    /// The concave corner's fill between the arms, growing with how far each
+    /// runs past the other so it is zero while one still sits inside the other.
+    /// </summary>
+    private static Geometry? Fillet(Rect horizontal, Rect vertical)
+    {
+        if (horizontal.IsEmpty || vertical.IsEmpty)
+        {
+            return null;
+        }
+
+        // Which way the horizontal arm runs past the vertical one, and the vertical past the horizontal.
+        var (sx, cornerX, reachX) = horizontal.Left < vertical.Left
+            ? (-1, vertical.Left, vertical.Left - horizontal.Left)
+            : (1, vertical.Right, horizontal.Right - vertical.Right);
+        var (sy, cornerY, reachY) = vertical.Bottom > horizontal.Bottom
+            ? (1, horizontal.Bottom, vertical.Bottom - horizontal.Bottom)
+            : (-1, horizontal.Top, horizontal.Top - vertical.Top);
+
+        // Only where both arms' edges are straight: an arm's last half
+        // thickness is its rounded end, which the fill would poke out of.
+        var radius = Math.Min(
+            PanelMetrics.CornerInnerRadius,
+            Math.Min(reachX - horizontal.Height / 2, reachY - vertical.Width / 2));
+        if (radius <= 0.5)
+        {
+            return null;
+        }
+
+        var figure = new PathFigure { StartPoint = new Point(cornerX, cornerY), IsClosed = true, IsFilled = true };
+        figure.Segments.Add(new LineSegment(new Point(cornerX + sx * radius, cornerY), true));
+        figure.Segments.Add(new ArcSegment(
+            new Point(cornerX, cornerY + sy * radius),
+            new Size(radius, radius),
+            0,
+            false,
+            sx * sy < 0 ? SweepDirection.Clockwise : SweepDirection.Counterclockwise,
+            true));
 
         var path = new PathGeometry();
         path.Figures.Add(figure);
-        path.Freeze();
         return path;
-    }
-
-    private static Geometry Transformed(Geometry geometry, Transform transform)
-    {
-        var flattened = geometry.CloneCurrentValue();
-        flattened.Transform = transform;
-        var result = PathGeometry.CreateFromGeometry(flattened);
-        result.Freeze();
-        return result;
     }
 
     private static Rect Mirror(Rect rect, Size size, bool horizontally, bool vertically) => new(
@@ -144,4 +179,84 @@ internal static class PanelOutline
         vertically ? size.Height - rect.Bottom : rect.Y,
         rect.Width,
         rect.Height);
+}
+
+/// <summary>
+/// The strip on screen at one moment: its two arms and each slot's frame,
+/// with how far the percentage has moved beside the ring (0 under, 1 beside).
+/// A change of outline is drawn as a run of poses between the old one and the
+/// new (design.md 4.2).
+/// </summary>
+internal sealed record StripPose(Rect Horizontal, Rect Vertical, IReadOnlyList<(Rect Frame, double Beside)> Slots)
+{
+    public static StripPose Of(PanelPlan plan, Point origin)
+    {
+        var shift = new Vector(origin.X, origin.Y);
+        return new StripPose(
+            Moved(plan.HorizontalArm, shift),
+            Moved(plan.VerticalArm, shift),
+            plan.Slots.Select(s => (Moved(s.Bounds, shift), s.PercentBeside ? 1.0 : 0.0)).ToList());
+    }
+
+    public Rect Bounds => Rect.Union(Horizontal, Vertical);
+
+    /// <summary>
+    /// The pose a fraction <paramref name="t"/> of the way from one to the
+    /// other. An arm only one of them has grows out of, or shrinks into, the
+    /// end of the other arm nearest to it, so the change reads as the strip
+    /// stretching rather than fading.
+    /// </summary>
+    public static StripPose Between(StripPose from, StripPose to, double t)
+    {
+        var fromH = from.Horizontal.IsEmpty ? Bud(from.Vertical, to.Horizontal, vertical: true) : from.Horizontal;
+        var toH = to.Horizontal.IsEmpty ? Bud(to.Vertical, from.Horizontal, vertical: true) : to.Horizontal;
+        var fromV = from.Vertical.IsEmpty ? Bud(from.Horizontal, to.Vertical, vertical: false) : from.Vertical;
+        var toV = to.Vertical.IsEmpty ? Bud(to.Horizontal, from.Vertical, vertical: false) : to.Vertical;
+
+        var slots = to.Slots
+            .Select((target, i) => i < from.Slots.Count
+                ? (Lerp(from.Slots[i].Frame, target.Frame, t), from.Slots[i].Beside + (target.Beside - from.Slots[i].Beside) * t)
+                : target)
+            .ToList();
+
+        return new StripPose(Lerp(fromH, toH, t), Lerp(fromV, toV, t), slots);
+    }
+
+    public StripPose Offset(Vector by) => new(
+        Moved(Horizontal, by),
+        Moved(Vertical, by),
+        Slots.Select(s => (Moved(s.Frame, by), s.Beside)).ToList());
+
+    /// <summary>
+    /// A square the arm's thickness inside <paramref name="arm"/>, at the
+    /// spot along it closest to <paramref name="toward"/>: where a missing arm
+    /// grows from. Empty when neither pose has that arm.
+    /// </summary>
+    private static Rect Bud(Rect arm, Rect toward, bool vertical)
+    {
+        if (arm.IsEmpty || toward.IsEmpty)
+        {
+            return Rect.Empty;
+        }
+
+        return vertical
+            ? new Rect(arm.X, Math.Clamp(toward.Y, arm.Top, Math.Max(arm.Bottom - arm.Width, arm.Top)), arm.Width, arm.Width)
+            : new Rect(Math.Clamp(toward.X, arm.Left, Math.Max(arm.Right - arm.Height, arm.Left)), arm.Y, arm.Height, arm.Height);
+    }
+
+    private static Rect Lerp(Rect a, Rect b, double t)
+    {
+        if (a.IsEmpty || b.IsEmpty)
+        {
+            return t < 1 ? a : b;
+        }
+
+        return new Rect(
+            a.X + (b.X - a.X) * t,
+            a.Y + (b.Y - a.Y) * t,
+            a.Width + (b.Width - a.Width) * t,
+            a.Height + (b.Height - a.Height) * t);
+    }
+
+    private static Rect Moved(Rect rect, Vector by) => rect.IsEmpty ? rect : Rect.Offset(rect, by);
 }
