@@ -46,7 +46,7 @@ public sealed class UsageBar : FrameworkElement
         }
 
         var radius = height / 2;
-        drawingContext.DrawRoundedRectangle(UsagePalette.Track, null, new Rect(0, 0, width, height), radius, radius);
+        drawingContext.DrawRoundedRectangle(UsagePalette.BarTrack, null, new Rect(0, 0, width, height), radius, radius);
 
         if (Percent is { } percent && percent > 0)
         {

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using OrbMet.Core.Models;
@@ -12,6 +13,9 @@ namespace OrbMet.Desktop.ViewModels;
 /// </summary>
 public sealed class PanelViewModel : ObservableObject, IDisposable
 {
+    /// <summary>Pulse holds a refresh visible this long so a local read still registers.</summary>
+    private static readonly TimeSpan MinimumRefreshDisplay = TimeSpan.FromMilliseconds(650);
+
     private readonly UsageCoordinator _coordinator;
     private readonly DispatcherTimer _timer;
     private readonly CancellationTokenSource _cancellation = new();
@@ -24,15 +28,11 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
     {
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
 
-        Claude = new ProviderSlotViewModel(
-            ProviderId.ClaudeCode, "Claude Code", "C",
-            "Claude Code'da bir yanıt geldiğinde güncellenir. Yenile yalnızca son kaydı yeniden okur.");
-        Codex = new ProviderSlotViewModel(
-            ProviderId.Codex, "Codex", "X",
-            "Codex'ten 2 dakikada bir okunur.");
+        Claude = new ProviderSlotViewModel(ProviderId.ClaudeCode, "Claude Code", "claude");
+        Codex = new ProviderSlotViewModel(ProviderId.Codex, "Codex", "openai");
         Providers = new ObservableCollection<ProviderSlotViewModel> { Claude, Codex };
 
-        RefreshCommand = new RelayCommand(RefreshAsync, () => !IsRefreshing);
+        RefreshCommand = new RelayCommand(() => RefreshAsync(showProgress: true), () => !IsRefreshing);
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(120) };
         _timer.Tick += async (_, _) => await RefreshAsync();
@@ -73,7 +73,12 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
         await RefreshAsync();
     }
 
-    public async Task RefreshAsync()
+    /// <summary>
+    /// Reads every provider. The timer refreshes quietly; a refresh the user
+    /// asked for shows each ring's refreshing state for at least
+    /// <see cref="MinimumRefreshDisplay"/> so even a fast local read registers.
+    /// </summary>
+    public async Task RefreshAsync(bool showProgress = false)
     {
         if (IsRefreshing || _disposed)
         {
@@ -81,6 +86,12 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
         }
 
         IsRefreshing = true;
+        var started = Stopwatch.StartNew();
+        if (showProgress)
+        {
+            SetSlotsRefreshing(true);
+        }
+
         try
         {
             var results = await Task.Run(() => _coordinator.ReadAllAsync(_cancellation.Token));
@@ -100,7 +111,69 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
         }
         finally
         {
+            if (showProgress)
+            {
+                await HoldAsync(started);
+                SetSlotsRefreshing(false);
+            }
+
             IsRefreshing = false;
+        }
+    }
+
+    /// <summary>A click on one ring: reads that provider alone.</summary>
+    public async Task RefreshProviderAsync(ProviderSlotViewModel slot)
+    {
+        ArgumentNullException.ThrowIfNull(slot);
+        if (IsRefreshing || slot.IsRefreshing || _disposed)
+        {
+            return;
+        }
+
+        slot.IsRefreshing = true;
+        var started = Stopwatch.StartNew();
+        try
+        {
+            var usage = await Task.Run(() => _coordinator.ReadAsync(slot.ProviderId, _cancellation.Token));
+            if (usage is not null)
+            {
+                slot.Apply(usage);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception)
+        {
+            LastUpdatedText = "Kullanım okunamadı";
+        }
+        finally
+        {
+            await HoldAsync(started);
+            slot.IsRefreshing = false;
+        }
+    }
+
+    private async Task HoldAsync(Stopwatch started)
+    {
+        var remaining = MinimumRefreshDisplay - started.Elapsed;
+        if (remaining > TimeSpan.Zero && !_disposed)
+        {
+            try
+            {
+                await Task.Delay(remaining, _cancellation.Token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+    }
+
+    private void SetSlotsRefreshing(bool value)
+    {
+        foreach (var slot in Providers)
+        {
+            slot.IsRefreshing = value;
         }
     }
 

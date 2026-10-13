@@ -1,31 +1,28 @@
 using System.Windows;
 using System.Windows.Threading;
+using OrbMet.Desktop.Controls;
 using OrbMet.Desktop.Infrastructure;
 using OrbMet.Desktop.ViewModels;
 
 namespace OrbMet.Desktop;
 
 /// <summary>
-/// The provider detail card beside the strip. Like the strip it never takes
-/// keyboard focus. It opens on the side with room, stays inside the work area
-/// and scrolls when its content is taller than the screen allows.
+/// The provider detail card beside the strip (design.md 7). Like the strip it
+/// never takes keyboard focus. It is centred on the ring it belongs to, kept
+/// inside the work area, and its tail always points at that ring's centre.
 /// </summary>
 public partial class DetailCardWindow : Window
 {
-    private readonly Action _refresh;
-    private readonly Action _openConnections;
-    private readonly Action _close;
     private readonly DispatcherTimer _clock;
     private Rect _strip;
-    private double _anchorTop;
+    private double _ringCentreY;
+    private bool _tailOnRight = true;
 
-    public DetailCardWindow(Action refresh, Action openConnections, Action close)
+    public DetailCardWindow()
     {
         InitializeComponent();
 
-        _refresh = refresh;
-        _openConnections = openConnections;
-        _close = close;
+        Body.Margin = new Thickness(PanelMetrics.CardPadding);
 
         // Relative times ("12 dk önce") are rebuilt only while the card is up.
         _clock = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
@@ -50,14 +47,14 @@ public partial class DetailCardWindow : Window
 
     /// <summary>
     /// Shows the card for a slot. <paramref name="strip"/> is the strip's
-    /// bounds and <paramref name="anchorTop"/> the slot's top, both in DIPs.
+    /// bounds and <paramref name="ringCentreY"/> the ring's centre, both in DIPs.
     /// </summary>
-    public void ShowFor(ProviderSlotViewModel slot, Rect strip, double anchorTop)
+    public void ShowFor(ProviderSlotViewModel slot, Rect strip, double ringCentreY)
     {
         slot.UpdateDetails(DateTimeOffset.UtcNow, TimeZoneInfo.Local);
         DataContext = slot;
         _strip = strip;
-        _anchorTop = anchorTop;
+        _ringCentreY = ringCentreY;
 
         var area = SystemParameters.WorkArea;
         MaxHeight = Math.Max(0, area.Height - 2 * PanelMetrics.WorkAreaMargin);
@@ -74,24 +71,30 @@ public partial class DetailCardWindow : Window
     {
         var area = SystemParameters.WorkArea;
 
-        // Left of the strip by default; the right side only when the left has no room.
+        // Left of the strip with the tail pointing right; the other side only
+        // when the left has no room.
         var left = _strip.Left - PanelMetrics.CardGap - ActualWidth;
-        if (left < area.Left + PanelMetrics.WorkAreaMargin)
+        var tailOnRight = left >= area.Left;
+        if (!tailOnRight)
         {
             left = _strip.Right + PanelMetrics.CardGap;
         }
 
-        var maxTop = area.Bottom - PanelMetrics.WorkAreaMargin - ActualHeight;
-        var top = Math.Min(_anchorTop, maxTop);
+        var top = _ringCentreY - ActualHeight / 2;
+        top = Math.Min(top, area.Bottom - PanelMetrics.WorkAreaMargin - ActualHeight);
         top = Math.Max(top, area.Top + PanelMetrics.WorkAreaMargin);
 
         Left = left;
         Top = top;
+
+        if (tailOnRight != _tailOnRight || Scroller.Margin == default)
+        {
+            _tailOnRight = tailOnRight;
+            Scroller.Margin = tailOnRight
+                ? new Thickness(0, 0, PanelMetrics.CardTailWidth, 0)
+                : new Thickness(PanelMetrics.CardTailWidth, 0, 0, 0);
+        }
+
+        Bubble.Data = DetailBubble.Build(ActualWidth, ActualHeight, _ringCentreY - top, _tailOnRight);
     }
-
-    private void OnCloseClick(object sender, RoutedEventArgs e) => _close();
-
-    private void OnRefreshClick(object sender, RoutedEventArgs e) => _refresh();
-
-    private void OnConnectionsClick(object sender, RoutedEventArgs e) => _openConnections();
 }

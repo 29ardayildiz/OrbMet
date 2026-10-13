@@ -4,9 +4,10 @@ using OrbMet.Core.Models;
 namespace OrbMet.Core.Usage;
 
 /// <summary>
-/// User-facing Turkish wording for usage windows. Kept free of WPF so the
-/// rules (no negative countdowns, no invented reset times) are unit-tested.
-/// Times are shown in the zone passed in, never a fixed one.
+/// User-facing Turkish wording for usage windows (design.md sections 6 and 7).
+/// Kept free of WPF so the rules (no invented reset times, no old value shown
+/// as the new period's) are unit-tested. Times are shown in the zone passed
+/// in, never a fixed one.
 /// </summary>
 public static class UsageText
 {
@@ -20,22 +21,45 @@ public static class UsageText
         ? $"%{value.ToString("0", CultureInfo.InvariantCulture)}"
         : "—";
 
+    /// <summary>The card's figure under a bar: "%6 kullanıldı".</summary>
+    public static string Used(double? usedPercent) => usedPercent is null
+        ? "Kullanım bildirilmedi"
+        : $"{Percent(usedPercent)} kullanıldı";
+
     /// <summary>
-    /// Short window name such as "5 saatlik" or "Haftalık". Falls back to the
-    /// provider's scope label, then to a neutral name when nothing is known.
+    /// Short window name such as "5 saatlik" or "Haftalık", used where space
+    /// is tight. Falls back to the scope label, then to a neutral name.
     /// </summary>
     public static string WindowLabel(UsageWindow window, string providerDisplayName)
     {
         ArgumentNullException.ThrowIfNull(window);
 
         var label = DurationLabel(window.DurationSeconds) ?? window.ScopeLabel ?? "Kullanım limiti";
+        return WithScope(label, window.ScopeLabel, providerDisplayName);
+    }
 
-        if (window.ScopeLabel is { Length: > 0 } scope &&
+    /// <summary>
+    /// The card's row title: "5 saatlik limit", "Haftalık limit · gpt-5", or
+    /// "Kullanım limiti" when the length is not reported.
+    /// </summary>
+    public static string LimitTitle(UsageWindow window, string providerDisplayName)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+
+        var label = DurationLabel(window.DurationSeconds) is { } duration
+            ? $"{duration} limit"
+            : "Kullanım limiti";
+        return WithScope(label, window.ScopeLabel, providerDisplayName);
+    }
+
+    private static string WithScope(string label, string? scope, string providerDisplayName)
+    {
+        if (scope is { Length: > 0 } &&
             !label.Contains(scope, StringComparison.Ordinal) &&
             !string.Equals(scope, providerDisplayName, StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(scope, "default", StringComparison.OrdinalIgnoreCase))
         {
-            label = $"{label} · {scope}";
+            return $"{label} · {scope}";
         }
 
         return label;
@@ -52,16 +76,17 @@ public static class UsageText
     };
 
     /// <summary>
-    /// Reset line for the detail card. An unknown reset is said plainly; a
-    /// reset already behind us means the window is over, not a negative count.
+    /// When a window resets, as a clock time: "Sıfırlanma 13:30" today,
+    /// "Sıfırlanma 18 Eki 09:00" on another day. An unknown reset is left
+    /// empty rather than guessed; a reset already behind us is the old period.
     /// </summary>
-    public static string Reset(DateTimeOffset? resetsAtUtc, DateTimeOffset nowUtc, TimeZoneInfo zone)
+    public static string ResetAt(DateTimeOffset? resetsAtUtc, DateTimeOffset nowUtc, TimeZoneInfo zone)
     {
         ArgumentNullException.ThrowIfNull(zone);
 
         if (resetsAtUtc is not { } resetsAt)
         {
-            return "Sıfırlanma zamanı bildirilmedi";
+            return string.Empty;
         }
 
         if (IsPast(resetsAtUtc, nowUtc))
@@ -69,23 +94,11 @@ public static class UsageText
             return "Yeni veri bekleniyor";
         }
 
-        var remaining = resetsAt - nowUtc;
-        if (remaining < TimeSpan.FromMinutes(1))
-        {
-            return "Sıfırlanmaya 1 dk'dan az";
-        }
-
-        if (remaining < TimeSpan.FromHours(1))
-        {
-            return $"Sıfırlanmaya {(int)remaining.TotalMinutes} dk";
-        }
-
-        if (remaining < TimeSpan.FromHours(24))
-        {
-            return $"Sıfırlanmaya {(int)remaining.TotalHours} sa {remaining.Minutes} dk";
-        }
-
-        return $"Sıfırlanma: {LocalDateTime(resetsAt, zone)}";
+        var local = TimeZoneInfo.ConvertTime(resetsAt, zone);
+        var today = TimeZoneInfo.ConvertTime(nowUtc, zone).Date;
+        return local.Date == today
+            ? $"Sıfırlanma {local.ToString("HH:mm", Turkish)}"
+            : $"Sıfırlanma {local.ToString("d MMM HH:mm", Turkish)}";
     }
 
     /// <summary>True once a reported reset moment has passed.</summary>
@@ -93,37 +106,34 @@ public static class UsageText
         resetsAtUtc is { } resetsAt && resetsAt <= nowUtc;
 
     /// <summary>
-    /// When the provider last reported, as "Son veri: 12 dk önce". This is the
-    /// observation time, not when OrbMet last read a file.
+    /// The card's footnote for a stale reading: "12 dk önce itibarıyla". This
+    /// is when the provider last reported, not when OrbMet last read a file.
     /// </summary>
-    public static string ObservedAge(DateTimeOffset? observedAtUtc, DateTimeOffset nowUtc, TimeZoneInfo zone)
+    public static string StaleFootnote(DateTimeOffset? observedAtUtc, DateTimeOffset nowUtc, TimeZoneInfo zone)
     {
         ArgumentNullException.ThrowIfNull(zone);
 
         if (observedAtUtc is not { } observed)
         {
-            return "Son veri zamanı bilinmiyor";
+            return "Veri güncel olmayabilir";
         }
 
         var age = nowUtc - observed;
         if (age < TimeSpan.FromMinutes(1))
         {
-            return "Son veri: az önce";
+            return "Az önce itibarıyla";
         }
 
         if (age < TimeSpan.FromHours(1))
         {
-            return $"Son veri: {(int)age.TotalMinutes} dk önce";
+            return $"{(int)age.TotalMinutes} dk önce itibarıyla";
         }
 
         if (age < TimeSpan.FromHours(24))
         {
-            return $"Son veri: {(int)age.TotalHours} sa önce";
+            return $"{(int)age.TotalHours} sa önce itibarıyla";
         }
 
-        return $"Son veri: {LocalDateTime(observed, zone)}";
+        return $"{TimeZoneInfo.ConvertTime(observed, zone).ToString("d MMM HH:mm", Turkish)} itibarıyla";
     }
-
-    private static string LocalDateTime(DateTimeOffset moment, TimeZoneInfo zone) =>
-        TimeZoneInfo.ConvertTime(moment, zone).ToString("d MMMM HH:mm", Turkish);
 }

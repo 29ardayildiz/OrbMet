@@ -8,6 +8,7 @@ using OrbMet.Core.Providers.Claude;
 using OrbMet.Core.Providers.Codex;
 using OrbMet.Core.Storage;
 using OrbMet.Core.Usage;
+using OrbMet.Desktop.Controls;
 using OrbMet.Desktop.Infrastructure;
 using OrbMet.Desktop.ViewModels;
 
@@ -23,10 +24,7 @@ public partial class MainWindow : Window
     private readonly PanelViewModel _viewModel;
     private readonly TrayIcon _tray;
     private readonly DetailCardWindow _card;
-    private readonly DispatcherTimer _cardOpenTimer;
-    private readonly DispatcherTimer _cardCloseTimer;
-    private FrameworkElement? _hoveredSlot;
-    private bool _cardPinned;
+    private readonly DispatcherTimer _pointerSampler;
     private ConnectionsWindow? _connectionsWindow;
     private bool _exitRequested;
     private bool _cleanedUp;
@@ -48,41 +46,22 @@ public partial class MainWindow : Window
         _tray = new TrayIcon(
             togglePanel: TogglePanel,
             openConnections: OpenConnections,
-            refresh: () => _ = _viewModel.RefreshAsync(),
+            refresh: () => _ = _viewModel.RefreshAsync(showProgress: true),
             exit: ExitApplication);
 
-        _card = new DetailCardWindow(
-            refresh: () => _ = _viewModel.RefreshAsync(),
-            openConnections: OpenConnections,
-            close: HideCard);
+        _card = new DetailCardWindow();
 
-        _cardOpenTimer = new DispatcherTimer { Interval = PanelMetrics.CardOpenDelay };
-        _cardOpenTimer.Tick += (_, _) =>
-        {
-            _cardOpenTimer.Stop();
-            if (_hoveredSlot is { IsMouseOver: true } slot)
-            {
-                ShowCardFor(slot);
-            }
-        };
-
-        _cardCloseTimer = new DispatcherTimer { Interval = PanelMetrics.CardCloseDelay };
-        _cardCloseTimer.Tick += (_, _) =>
-        {
-            _cardCloseTimer.Stop();
-
-            // The pointer may be crossing the gap between strip and card.
-            if (!_cardPinned && !IsMouseOver && !_card.IsMouseOver)
-            {
-                _card.Hide();
-            }
-        };
-
-        _card.MouseEnter += (_, _) => _cardCloseTimer.Stop();
-        _card.MouseLeave += (_, _) => ScheduleCardClose();
+        // While the card is up, the real pointer is sampled to decide when it
+        // goes; enter events only ever open it (design.md 8.1).
+        _pointerSampler = new DispatcherTimer { Interval = PanelMetrics.PointerSampleInterval };
+        _pointerSampler.Tick += (_, _) => SamplePointer();
 
         SourceInitialized += (_, _) => NoActivateWindow.Apply(this);
-        SizeChanged += (_, _) => PlaceOnRightEdge();
+        SizeChanged += (_, _) =>
+        {
+            Berth.Data = DockBerth.Build(ActualWidth, ActualHeight);
+            PlaceOnRightEdge();
+        };
         SystemParameters.StaticPropertyChanged += OnSystemParameterChanged;
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
@@ -92,13 +71,13 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Pins the strip to the right edge of the primary work area, vertically
-    /// centred. WorkArea already excludes the taskbar and is in DIPs.
+    /// Docks the strip flush against the right edge of the primary work area,
+    /// vertically centred. WorkArea already excludes the taskbar and is in DIPs.
     /// </summary>
     private void PlaceOnRightEdge()
     {
         var area = SystemParameters.WorkArea;
-        Left = area.Right - ActualWidth - PanelMetrics.WorkAreaMargin;
+        Left = area.Right - ActualWidth;
         Top = area.Top + Math.Max(0, (area.Height - ActualHeight) / 2);
     }
 
@@ -114,78 +93,71 @@ public partial class MainWindow : Window
     private void OnDisplaySettingsChanged(object? sender, EventArgs e) =>
         Dispatcher.BeginInvoke(PlaceOnRightEdge);
 
-    private void OnSlotMouseEnter(object sender, MouseEventArgs e)
+    /// <summary>Entering a ring's circle opens its card at once, or swaps an open card to it.</summary>
+    private void OnRingMouseEnter(object sender, MouseEventArgs e)
     {
-        _cardCloseTimer.Stop();
-        _hoveredSlot = (FrameworkElement)sender;
+        if (sender is FrameworkElement { DataContext: ProviderSlotViewModel slot } ring)
+        {
+            ShowCardFor(ring, slot);
+        }
+    }
 
-        if (_cardPinned)
+    /// <summary>A click on a ring refreshes that provider; it does not pin the card.</summary>
+    private void OnRingClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: ProviderSlotViewModel slot })
+        {
+            _ = _viewModel.RefreshProviderAsync(slot);
+        }
+    }
+
+    private void ShowCardFor(FrameworkElement ring, ProviderSlotViewModel slot)
+    {
+        if (!IsVisible)
         {
             return;
         }
 
-        // Moving between slots while the card is up swaps it without a delay.
-        if (_card.IsVisible)
+        foreach (var other in _viewModel.Providers)
         {
-            ShowCardFor(_hoveredSlot);
+            other.IsSelected = ReferenceEquals(other, slot);
         }
-        else
-        {
-            _cardOpenTimer.Stop();
-            _cardOpenTimer.Start();
-        }
+
+        var ringCentreY = Top + ring.TranslatePoint(new Point(0, ring.ActualHeight / 2), this).Y;
+        _card.ShowFor(slot, new Rect(Left, Top, ActualWidth, ActualHeight), ringCentreY);
+        _pointerSampler.Start();
     }
 
-    private void OnSlotClick(object sender, MouseButtonEventArgs e)
+    private void SamplePointer()
     {
-        var element = (FrameworkElement)sender;
-        _cardOpenTimer.Stop();
+        // The menu runs its own loop with the pointer on it, off the panel.
+        if (ContextMenuIsOpen() || PointerPosition.InDips(this) is not { } pointer)
+        {
+            return;
+        }
 
-        // A click pins the card; clicking the same slot again releases it.
-        if (_cardPinned && ReferenceEquals(_card.Slot, element.DataContext))
+        var strip = new Rect(Left, Top, ActualWidth, ActualHeight);
+
+        // The card's rect is widened over the gap so crossing it never closes the card.
+        var card = new Rect(_card.Left, _card.Top, _card.ActualWidth, _card.ActualHeight);
+        card.Inflate(PanelMetrics.CardGap, 0);
+
+        if (!strip.Contains(pointer) && !card.Contains(pointer))
         {
             HideCard();
-            return;
         }
-
-        _cardPinned = true;
-        ShowCardFor(element);
     }
 
-    private void OnStripMouseLeave(object sender, MouseEventArgs e)
-    {
-        _cardOpenTimer.Stop();
-        ScheduleCardClose();
-    }
-
-    private void ScheduleCardClose()
-    {
-        if (_cardPinned || !_card.IsVisible)
-        {
-            return;
-        }
-
-        _cardCloseTimer.Stop();
-        _cardCloseTimer.Start();
-    }
-
-    private void ShowCardFor(FrameworkElement slotElement)
-    {
-        if (slotElement.DataContext is not ProviderSlotViewModel slot || !IsVisible)
-        {
-            return;
-        }
-
-        var slotTop = Top + slotElement.TranslatePoint(new Point(0, 0), this).Y;
-        _card.ShowFor(slot, new Rect(Left, Top, ActualWidth, ActualHeight), slotTop);
-    }
+    private bool ContextMenuIsOpen() => Content is FrameworkElement { ContextMenu.IsOpen: true };
 
     private void HideCard()
     {
-        _cardPinned = false;
-        _cardOpenTimer.Stop();
-        _cardCloseTimer.Stop();
+        _pointerSampler.Stop();
         _card.Hide();
+        foreach (var slot in _viewModel.Providers)
+        {
+            slot.IsSelected = false;
+        }
     }
 
     private void HidePanel()
@@ -250,8 +222,7 @@ public partial class MainWindow : Window
         _cleanedUp = true;
         SystemParameters.StaticPropertyChanged -= OnSystemParameterChanged;
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
-        _cardOpenTimer.Stop();
-        _cardCloseTimer.Stop();
+        _pointerSampler.Stop();
         _card.Close();
         _viewModel.Dispose();
         _tray.Dispose();

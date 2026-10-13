@@ -29,6 +29,16 @@ public sealed class UsageCoordinator
         return await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Reads one provider, for a click on its ring. Null when no enabled
+    /// provider has that id, so a disabled one is never started.
+    /// </summary>
+    public async Task<ProviderUsage?> ReadAsync(ProviderId providerId, CancellationToken cancellationToken)
+    {
+        var provider = _providers.FirstOrDefault(candidate => candidate.ProviderId == providerId);
+        return provider is null ? null : await ReadOneAsync(provider, cancellationToken).ConfigureAwait(false);
+    }
+
     private static async Task<ProviderUsage> ReadOneAsync(IUsageProvider provider, CancellationToken cancellationToken)
     {
         ProviderSnapshot snapshot;

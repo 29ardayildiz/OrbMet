@@ -4,7 +4,7 @@
         xmlns:controls="clr-namespace:OrbMet.Desktop.Controls"
         xmlns:infra="clr-namespace:OrbMet.Desktop.Infrastructure"
         Title="OrbMet ayrıntı"
-        Width="{x:Static infra:PanelMetrics.CardWidth}"
+        Width="{x:Static infra:PanelMetrics.CardWindowWidth}"
         SizeToContent="Height"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -14,142 +14,64 @@
         ShowActivated="False"
         Topmost="True"
         WindowStartupLocation="Manual"
-        FontFamily="Segoe UI"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
         TextOptions.TextFormattingMode="Display">
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="Visible" />
+        <!-- design.md 5: every neutral is white at an opacity. -->
+        <SolidColorBrush x:Key="Text" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="TextValue" Color="#E6FFFFFF" />
+        <SolidColorBrush x:Key="TextSecondary" Color="#8CFFFFFF" />
+        <SolidColorBrush x:Key="TextReset" Color="#73FFFFFF" />
+        <SolidColorBrush x:Key="TextFootnote" Color="#66FFFFFF" />
+        <SolidColorBrush x:Key="Spent" Color="#D9171F" />
 
-        <Style x:Key="SecondaryText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#B6BDCA" />
-            <Setter Property="FontSize" Value="12" />
+        <Style x:Key="CollapsedWhenNull" TargetType="TextBlock">
             <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
-
-        <Style x:Key="MutedText" TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
-            <Setter Property="Foreground" Value="#929BAA" />
-        </Style>
-
-        <Style x:Key="CardButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#15171C" />
-            <Setter Property="Background" Value="#B6B0FF" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Padding" Value="12,5" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Chrome"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="8"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chrome" Property="Opacity" Value="0.85" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Margin" Value="0,14,0,0" />
+            <Style.Triggers>
+                <Trigger Property="Text" Value="">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </Window.Resources>
 
-    <Border Background="#1D2027"
-            BorderBrush="#343945"
-            BorderThickness="1"
-            CornerRadius="16">
-        <ScrollViewer VerticalScrollBarVisibility="Auto"
+    <Grid>
+        <!-- Body and tail as one outline; rebuilt when the size or the tail's target changes. -->
+        <Path x:Name="Bubble" Fill="Black" />
+
+        <ScrollViewer x:Name="Scroller"
+                      VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="16,14,16,16">
+            <StackPanel x:Name="Body">
 
-                <!-- 1. Provider and connection state -->
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="{Binding DisplayName}"
-                               Foreground="#F4F6FA"
-                               FontSize="16"
-                               FontWeight="SemiBold" />
-                    <Button Grid.Column="1"
-                            Content="✕"
-                            ToolTip="Kartı kapat"
-                            AutomationProperties.Name="Kartı kapat"
-                            Click="OnCloseClick"
-                            Foreground="#929BAA"
-                            Background="Transparent"
-                            FontSize="11"
-                            Padding="6,2"
-                            Margin="8,-2,-6,0"
-                            VerticalAlignment="Top"
-                            Style="{StaticResource CardButton}" />
-                </Grid>
-                <TextBlock Text="{Binding StatusText}" Margin="0,2,0,0">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsStale}" Value="True">
-                                    <Setter Property="Foreground" Value="#F3C56B" />
-                                    <Setter Property="FontWeight" Value="SemiBold" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                <!-- 1. Logo and title -->
+                <StackPanel Orientation="Horizontal">
+                    <controls:ProviderMark Width="16"
+                                           Height="16"
+                                           Mark="{Binding Mark}"
+                                           Fill="{StaticResource Text}" />
+                    <TextBlock Text="{Binding CardTitle}"
+                               Foreground="{StaticResource Text}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
 
-                <!-- 2. Plan, only when reported -->
-                <TextBlock Text="{Binding PlanText}" Margin="0,2,0,0">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding PlanText}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-
-                <!-- 3. Every reported window -->
-                <ItemsControl ItemsSource="{Binding Rows}" Margin="0,4,0,0">
+                <!-- 2. One row per reported window -->
+                <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="0,12,0,0"
+                            <StackPanel Margin="0,14,0,0"
                                         AutomationProperties.Name="{Binding AccessibleText}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Title}"
-                                                   Foreground="#F4F6FA"
-                                                   FontSize="13"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <Border Background="#2A2E38"
-                                                CornerRadius="6"
-                                                Padding="6,0"
-                                                Margin="8,0,0,0"
-                                                VerticalAlignment="Center"
-                                                ToolTip="Şeritteki halka bu dönemi gösteriyor"
-                                                Visibility="{Binding IsRingWindow, Converter={StaticResource Visible}}">
-                                            <TextBlock Text="halkada" Foreground="#B6B0FF" FontSize="11" />
-                                        </Border>
-                                    </StackPanel>
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding PercentText}"
-                                               Foreground="#F4F6FA"
-                                               FontSize="13"
-                                               FontWeight="SemiBold"
-                                               Margin="8,0,0,0" />
-                                </Grid>
+                                <TextBlock Text="{Binding Title}"
+                                           Foreground="{StaticResource Text}"
+                                           FontSize="11.5"
+                                           TextTrimming="CharacterEllipsis" />
                                 <controls:UsageBar Height="6"
-                                                   Margin="0,6,0,0"
+                                                   Margin="0,7,0,0"
                                                    Percent="{Binding Percent}"
                                                    IsExhausted="{Binding IsExhausted}">
                                     <controls:UsageBar.Style>
@@ -162,42 +84,51 @@
                                         </Style>
                                     </controls:UsageBar.Style>
                                 </controls:UsageBar>
-                                <TextBlock Text="{Binding ResetText}"
-                                           Style="{StaticResource SecondaryText}"
-                                           Margin="0,5,0,0" />
+                                <Grid Margin="0,7,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding UsedText}"
+                                               FontSize="11.5"
+                                               FontWeight="Medium"
+                                               Typography.NumeralAlignment="Tabular">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource TextValue}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSpent}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource Spent}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding ResetText}"
+                                               Foreground="{StaticResource TextReset}"
+                                               FontSize="11.5"
+                                               Margin="8,0,0,0"
+                                               HorizontalAlignment="Right"
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- 4. Observation time and how it refreshes -->
-                <TextBlock Text="{Binding ObservedText}"
-                           Style="{StaticResource MutedText}"
-                           Margin="0,14,0,0" />
-                <TextBlock Text="{Binding HintText}"
-                           Style="{StaticResource MutedText}"
-                           Margin="0,2,0,0" />
+                <!-- 3. Only when something needs saying -->
+                <TextBlock Text="{Binding Message, TargetNullValue=''}"
+                           Foreground="{StaticResource TextSecondary}"
+                           FontSize="12"
+                           Style="{StaticResource CollapsedWhenNull}" />
 
-                <!-- 5. One fitting action -->
-                <Button Content="Yenile"
-                        Click="OnRefreshClick"
-                        Margin="0,12,0,0">
-                    <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource CardButton}">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding NeedsConnectionCheck}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
-                <Button Content="Bağlantıyı kontrol et"
-                        Click="OnConnectionsClick"
-                        Margin="0,12,0,0"
-                        Style="{StaticResource CardButton}"
-                        Visibility="{Binding NeedsConnectionCheck, Converter={StaticResource Visible}}" />
+                <!-- 4. Only for a stale reading -->
+                <TextBlock Text="{Binding Footnote, TargetNullValue=''}"
+                           Foreground="{StaticResource TextFootnote}"
+                           FontSize="11"
+                           Style="{StaticResource CollapsedWhenNull}" />
             </StackPanel>
         </ScrollViewer>
-    </Border>
+    </Grid>
 </Window>

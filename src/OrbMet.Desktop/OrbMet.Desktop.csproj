@@ -5,6 +5,11 @@
     <ProjectReference Include="..\OrbMet.Capture\OrbMet.Capture.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
+  <!-- Provider marks, licensed in THIRD_PARTY_NOTICES.md. -->
+  <ItemGroup>
+    <Resource Include="Assets\Marks\*.svg" />
+  </ItemGroup>
+
   <!-- WinForms is on only for the tray icon. Its implicit usings would collide
        with WPF's Application/MessageBox, so they are removed here and imported
        explicitly where needed. -->

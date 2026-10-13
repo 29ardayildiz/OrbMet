@@ -5,6 +5,7 @@ namespace OrbMet.Core.Tests;
 
 public class UsageTextTests
 {
+    // 13:00 local in the +03:00 test zone.
     private static readonly DateTimeOffset Now = new(2026, 10, 13, 10, 0, 0, TimeSpan.Zero);
 
     // A fixed +03:00 zone so the tests do not depend on the machine's zone.
@@ -24,6 +25,14 @@ public class UsageTextTests
     public void MissingPercentIsADashNotZero()
     {
         Assert.Equal("—", UsageText.Percent(null));
+        Assert.Equal("Kullanım bildirilmedi", UsageText.Used(null));
+    }
+
+    [Fact]
+    public void UsedNamesTheFigure()
+    {
+        Assert.Equal("%6 kullanıldı", UsageText.Used(6));
+        Assert.Equal("%0 kullanıldı", UsageText.Used(0));
     }
 
     [Theory]
@@ -36,66 +45,75 @@ public class UsageTextTests
         var window = new UsageWindow { Id = "w", DurationSeconds = seconds };
 
         Assert.Equal(expected, UsageText.WindowLabel(window, "Codex"));
+        Assert.Equal($"{expected} limit", UsageText.LimitTitle(window, "Codex"));
     }
 
     [Fact]
     public void UnknownOrUnevenDurationFallsBackToANeutralName()
     {
         Assert.Equal("Kullanım limiti", UsageText.WindowLabel(new UsageWindow { Id = "w" }, "Codex"));
-        Assert.Equal("Kullanım limiti", UsageText.WindowLabel(new UsageWindow { Id = "w", DurationSeconds = 5400 }, "Codex"));
+        Assert.Equal("Kullanım limiti", UsageText.LimitTitle(new UsageWindow { Id = "w", DurationSeconds = 5400 }, "Codex"));
     }
 
     [Fact]
     public void ModelScopeIsAppendedButProviderNameAndDefaultAreNot()
     {
-        var scoped = new UsageWindow { Id = "w", DurationSeconds = 5 * 3600, ScopeLabel = "gpt-5" };
+        var scoped = new UsageWindow { Id = "w", DurationSeconds = 7 * 86400, ScopeLabel = "gpt-5" };
         var provider = new UsageWindow { Id = "w", DurationSeconds = 5 * 3600, ScopeLabel = "codex" };
-        var fallback = new UsageWindow { Id = "w", ScopeLabel = "gpt-5" };
+        var unknownLength = new UsageWindow { Id = "w", ScopeLabel = "gpt-5" };
 
-        Assert.Equal("5 saatlik · gpt-5", UsageText.WindowLabel(scoped, "Codex"));
-        Assert.Equal("5 saatlik", UsageText.WindowLabel(provider, "Codex"));
-        Assert.Equal("gpt-5", UsageText.WindowLabel(fallback, "Codex"));
+        Assert.Equal("Haftalık limit · gpt-5", UsageText.LimitTitle(scoped, "Codex"));
+        Assert.Equal("5 saatlik limit", UsageText.LimitTitle(provider, "Codex"));
+        Assert.Equal("Kullanım limiti · gpt-5", UsageText.LimitTitle(unknownLength, "Codex"));
+        Assert.Equal("gpt-5", UsageText.WindowLabel(unknownLength, "Codex"));
     }
 
     [Fact]
-    public void UnknownResetIsNotInvented()
+    public void UnknownResetIsLeftEmptyNotInvented()
     {
-        Assert.Equal("Sıfırlanma zamanı bildirilmedi", UsageText.Reset(null, Now, Plus3));
+        Assert.Equal(string.Empty, UsageText.ResetAt(null, Now, Plus3));
     }
 
     [Fact]
-    public void PassedResetWaitsForNewDataInsteadOfCountingNegative()
+    public void PassedResetWaitsForNewData()
     {
-        Assert.Equal("Yeni veri bekleniyor", UsageText.Reset(Now, Now, Plus3));
-        Assert.Equal("Yeni veri bekleniyor", UsageText.Reset(Now.AddHours(-2), Now, Plus3));
+        Assert.Equal("Yeni veri bekleniyor", UsageText.ResetAt(Now, Now, Plus3));
+        Assert.Equal("Yeni veri bekleniyor", UsageText.ResetAt(Now.AddHours(-2), Now, Plus3));
         Assert.True(UsageText.IsPast(Now.AddSeconds(-1), Now));
         Assert.False(UsageText.IsPast(Now.AddSeconds(1), Now));
         Assert.False(UsageText.IsPast(null, Now));
     }
 
     [Fact]
-    public void NearResetsCountDown()
+    public void ResetTodayShowsOnlyTheLocalTime()
     {
-        Assert.Equal("Sıfırlanmaya 1 dk'dan az", UsageText.Reset(Now.AddSeconds(30), Now, Plus3));
-        Assert.Equal("Sıfırlanmaya 14 dk", UsageText.Reset(Now.AddMinutes(14), Now, Plus3));
-        Assert.Equal("Sıfırlanmaya 2 sa 14 dk", UsageText.Reset(Now.AddMinutes(134), Now, Plus3));
+        Assert.Equal("Sıfırlanma 15:14", UsageText.ResetAt(Now.AddMinutes(134), Now, Plus3));
     }
 
     [Fact]
-    public void DistantResetsShowTheLocalDate()
+    public void ResetOnAnotherDayShowsTheLocalDate()
     {
         var resetsAt = new DateTimeOffset(2026, 10, 15, 11, 30, 0, TimeSpan.Zero);
 
-        Assert.Equal("Sıfırlanma: 15 Ekim 14:30", UsageText.Reset(resetsAt, Now, Plus3));
+        Assert.Equal("Sıfırlanma 15 Eki 14:30", UsageText.ResetAt(resetsAt, Now, Plus3));
     }
 
     [Fact]
-    public void ObservedAgeDescribesTheProviderObservation()
+    public void ResetJustPastLocalMidnightIsAnotherDay()
     {
-        Assert.Equal("Son veri zamanı bilinmiyor", UsageText.ObservedAge(null, Now, Plus3));
-        Assert.Equal("Son veri: az önce", UsageText.ObservedAge(Now.AddSeconds(-20), Now, Plus3));
-        Assert.Equal("Son veri: 12 dk önce", UsageText.ObservedAge(Now.AddMinutes(-12), Now, Plus3));
-        Assert.Equal("Son veri: 3 sa önce", UsageText.ObservedAge(Now.AddHours(-3), Now, Plus3));
-        Assert.Equal("Son veri: 11 Ekim 13:00", UsageText.ObservedAge(Now.AddDays(-2), Now, Plus3));
+        // 21:30 UTC is 00:30 the next day at +03:00.
+        var resetsAt = new DateTimeOffset(2026, 10, 13, 21, 30, 0, TimeSpan.Zero);
+
+        Assert.Equal("Sıfırlanma 14 Eki 00:30", UsageText.ResetAt(resetsAt, Now, Plus3));
+    }
+
+    [Fact]
+    public void StaleFootnoteDescribesTheProviderObservation()
+    {
+        Assert.Equal("Veri güncel olmayabilir", UsageText.StaleFootnote(null, Now, Plus3));
+        Assert.Equal("Az önce itibarıyla", UsageText.StaleFootnote(Now.AddSeconds(-20), Now, Plus3));
+        Assert.Equal("12 dk önce itibarıyla", UsageText.StaleFootnote(Now.AddMinutes(-12), Now, Plus3));
+        Assert.Equal("3 sa önce itibarıyla", UsageText.StaleFootnote(Now.AddHours(-3), Now, Plus3));
+        Assert.Equal("11 Eki 13:00 itibarıyla", UsageText.StaleFootnote(Now.AddDays(-2), Now, Plus3));
     }
 }

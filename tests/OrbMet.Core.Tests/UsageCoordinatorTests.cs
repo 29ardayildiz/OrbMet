@@ -55,6 +55,32 @@ public class UsageCoordinatorTests
             () => coordinator.ReadAllAsync(source.Token));
     }
 
+    [Fact]
+    public async Task ReadsOnlyTheRequestedProvider()
+    {
+        var codex = new FakeProvider(ProviderId.Codex, SourceKind.CodexAppServer, Window("codex.primary", 40));
+        var claude = new FakeProvider(ProviderId.ClaudeCode, SourceKind.ClaudeStatusLine, Window("claudeCode.five_hour", 10));
+        var coordinator = new UsageCoordinator(new IUsageProvider[] { codex, claude });
+
+        var result = await coordinator.ReadAsync(ProviderId.ClaudeCode, CancellationToken.None);
+
+        Assert.Equal("claudeCode.five_hour", result!.RingWindow!.Id);
+        Assert.Equal(0, codex.Reads);
+        Assert.Equal(1, claude.Reads);
+    }
+
+    [Fact]
+    public async Task ReadingAProviderThatIsNotEnabledStartsNothing()
+    {
+        var codex = new FakeProvider(ProviderId.Codex, SourceKind.CodexAppServer, Window("codex.primary", 40));
+        var coordinator = new UsageCoordinator(new IUsageProvider[] { codex });
+
+        var result = await coordinator.ReadAsync(ProviderId.ClaudeCode, CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.Equal(0, codex.Reads);
+    }
+
     private static UsageWindow Window(string id, double percent) => new()
     {
         Id = id,
@@ -85,8 +111,12 @@ public class UsageCoordinatorTests
 
         public SourceKind SourceKind { get; }
 
+        public int Reads { get; private set; }
+
         public Task<ProviderSnapshot> ReadAsync(CancellationToken cancellationToken)
         {
+            Reads++;
+
             if (_honorCancellation)
             {
                 cancellationToken.ThrowIfCancellationRequested();
