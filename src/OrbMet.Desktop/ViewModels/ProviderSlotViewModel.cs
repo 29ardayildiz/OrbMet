@@ -13,11 +13,13 @@ public sealed class ProviderSlotViewModel : ObservableObject
     private string _windowLabel = string.Empty;
     private string _statusText = "Bağlantı kontrol ediliyor…";
     private string _accessibleText = string.Empty;
+    private string _toolTipText;
 
     public ProviderSlotViewModel(string displayName, string glyph)
     {
         DisplayName = displayName;
         Glyph = glyph;
+        _toolTipText = $"{displayName}\n{_statusText}";
     }
 
     public string DisplayName { get; }
@@ -64,17 +66,28 @@ public sealed class ProviderSlotViewModel : ObservableObject
         private set => SetProperty(ref _accessibleText, value);
     }
 
+    /// <summary>Hover text for the strip, which has no room for labels.</summary>
+    public string ToolTipText
+    {
+        get => _toolTipText;
+        private set => SetProperty(ref _toolTipText, value);
+    }
+
     public void Apply(ProviderUsage usage)
     {
         var window = usage.RingWindow;
         IsExhausted = window?.ExhaustionEvidence == ExhaustionEvidence.Exhausted;
         RingPercent = window?.UsedPercent is { } percent ? percent : null;
+        // Turkish puts the sign first: %19, not 19%.
         PercentText = window?.UsedPercent is { } value
-            ? $"{value.ToString("0", CultureInfo.InvariantCulture)}%"
+            ? $"%{value.ToString("0", CultureInfo.InvariantCulture)}"
             : "—";
         WindowLabel = BuildWindowLabel(window);
         StatusText = BuildStatus(usage.Snapshot);
         AccessibleText = BuildAccessibleText(usage.Snapshot, window);
+        ToolTipText = window is null
+            ? $"{DisplayName}\n{StatusText}"
+            : $"{DisplayName}\n{WindowLabel} · {PercentText}\n{StatusText}";
     }
 
     private string BuildWindowLabel(UsageWindow? window)

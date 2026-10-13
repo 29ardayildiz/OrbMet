@@ -4,100 +4,67 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:OrbMet.Desktop.Controls"
+        xmlns:infra="clr-namespace:OrbMet.Desktop.Infrastructure"
         mc:Ignorable="d"
         Title="OrbMet"
-        Height="400" Width="340"
-        Background="#15171C"
+        Width="{x:Static infra:PanelMetrics.StripWidth}"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        WindowStartupLocation="Manual"
         FontFamily="Segoe UI"
         TextOptions.TextFormattingMode="Display">
-    <Grid Margin="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <!-- 8 DIP padding plus each slot's 4 DIP margin gives the 12 DIP outer
+         spacing and the 8 DIP gap between slots from design.md. -->
+    <Border Background="#15171C"
+            BorderBrush="#343945"
+            BorderThickness="1"
+            CornerRadius="22"
+            Padding="0,8">
+        <Border.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="Yenile"
+                          Command="{Binding RefreshCommand}" />
+                <MenuItem Header="Bağlantılar"
+                          Click="OnConnectionsClick" />
+                <MenuItem Header="Paneli gizle"
+                          Click="OnHideClick" />
+                <Separator />
+                <MenuItem Header="{Binding LastUpdatedText}"
+                          IsEnabled="False" />
+            </ContextMenu>
+        </Border.ContextMenu>
 
-        <TextBlock Grid.Row="0"
-                   Text="OrbMet"
-                   Foreground="#F4F6FA"
-                   FontSize="16"
-                   FontWeight="SemiBold"
-                   Margin="4,0,0,10" />
-
-        <ItemsControl Grid.Row="1" ItemsSource="{Binding Providers}">
+        <ItemsControl ItemsSource="{Binding Providers}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Border Background="#1D2027"
-                            BorderBrush="#343945"
-                            BorderThickness="1"
-                            CornerRadius="12"
-                            Padding="14"
-                            Margin="0,0,0,8">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" Width="64" VerticalAlignment="Center">
-                                <controls:UsageRing Width="40"
-                                                    Height="40"
-                                                    HorizontalAlignment="Center"
-                                                    Percent="{Binding RingPercent}"
-                                                    IsExhausted="{Binding IsExhausted}"
-                                                    Glyph="{Binding Glyph}"
-                                                    ToolTip="{Binding WindowLabel}"
-                                                    AutomationProperties.Name="{Binding AccessibleText}" />
-                                <TextBlock Text="{Binding PercentText}"
-                                           Foreground="#F4F6FA"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           HorizontalAlignment="Center"
-                                           Margin="0,4,0,0" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="1"
-                                        Margin="12,0,0,0"
-                                        VerticalAlignment="Center">
-                                <TextBlock Text="{Binding DisplayName}"
-                                           Foreground="#F4F6FA"
-                                           FontSize="13"
-                                           FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding WindowLabel}"
-                                           Foreground="#929BAA"
-                                           FontSize="11"
-                                           Margin="0,2,0,0" />
-                                <TextBlock Text="{Binding StatusText}"
-                                           Foreground="#B6BDCA"
-                                           FontSize="11"
-                                           TextWrapping="Wrap"
-                                           Margin="0,6,0,0" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+                    <StackPanel Height="{x:Static infra:PanelMetrics.SlotHeight}"
+                                Margin="0,4"
+                                VerticalAlignment="Center"
+                                Background="Transparent"
+                                ToolTip="{Binding ToolTipText}"
+                                AutomationProperties.Name="{Binding AccessibleText}">
+                        <controls:UsageRing Width="{x:Static infra:PanelMetrics.RingDiameter}"
+                                            Height="{x:Static infra:PanelMetrics.RingDiameter}"
+                                            Margin="0,5,0,0"
+                                            HorizontalAlignment="Center"
+                                            Percent="{Binding RingPercent}"
+                                            IsExhausted="{Binding IsExhausted}"
+                                            Glyph="{Binding Glyph}" />
+                        <TextBlock Text="{Binding PercentText}"
+                                   Foreground="#F4F6FA"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,6,0,0">
-            <Button Content="Yenile"
-                    Command="{Binding RefreshCommand}"
-                    IsEnabled="{Binding CanRefresh}"
-                    Padding="12,5"
-                    Background="#B6B0FF"
-                    Foreground="#15171C"
-                    BorderThickness="0"
-                    FontWeight="SemiBold" />
-            <Button Content="Bağlantılar"
-                    Click="OnConnectionsClick"
-                    Padding="12,5"
-                    Margin="8,0,0,0"
-                    Background="#2A2E38"
-                    Foreground="#F4F6FA"
-                    BorderThickness="0" />
-            <TextBlock Text="{Binding LastUpdatedText}"
-                       Foreground="#929BAA"
-                       FontSize="11"
-                       VerticalAlignment="Center"
-                       Margin="10,0,0,0" />
-        </StackPanel>
-    </Grid>
+    </Border>
 </Window>

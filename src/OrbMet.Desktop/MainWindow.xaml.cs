@@ -1,4 +1,6 @@
-﻿using System.Windows;
+using System.ComponentModel;
+using System.Windows;
+using Microsoft.Win32;
 using OrbMet.Core.Providers;
 using OrbMet.Core.Providers.Claude;
 using OrbMet.Core.Providers.Codex;
@@ -10,9 +12,9 @@ using OrbMet.Desktop.ViewModels;
 namespace OrbMet.Desktop;
 
 /// <summary>
-/// The compact panel. It shows both providers' reported usage, hides to the
-/// tray instead of exiting, and never blocks the UI thread while reading a
-/// provider.
+/// The compact panel: a narrow strip on the right edge of the primary work
+/// area. It never takes keyboard focus, hides to the tray instead of exiting,
+/// and never blocks the UI thread while reading a provider.
 /// </summary>
 public partial class MainWindow : Window
 {
@@ -42,10 +44,38 @@ public partial class MainWindow : Window
             refresh: () => _ = _viewModel.RefreshAsync(),
             exit: ExitApplication);
 
+        SourceInitialized += (_, _) => NoActivateWindow.Apply(this);
+        SizeChanged += (_, _) => PlaceOnRightEdge();
+        SystemParameters.StaticPropertyChanged += OnSystemParameterChanged;
+        SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+
         Loaded += async (_, _) => await _viewModel.StartAsync();
         Closing += OnClosing;
         Closed += (_, _) => CleanUp();
     }
+
+    /// <summary>
+    /// Pins the strip to the right edge of the primary work area, vertically
+    /// centred. WorkArea already excludes the taskbar and is in DIPs.
+    /// </summary>
+    private void PlaceOnRightEdge()
+    {
+        var area = SystemParameters.WorkArea;
+        Left = area.Right - ActualWidth - PanelMetrics.WorkAreaMargin;
+        Top = area.Top + Math.Max(0, (area.Height - ActualHeight) / 2);
+    }
+
+    private void OnSystemParameterChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SystemParameters.WorkArea))
+        {
+            Dispatcher.BeginInvoke(PlaceOnRightEdge);
+        }
+    }
+
+    // Raised on a system thread; the move is marshalled to the UI thread.
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(PlaceOnRightEdge);
 
     private void TogglePanel()
     {
@@ -56,29 +86,26 @@ public partial class MainWindow : Window
         else
         {
             Show();
-            Activate();
         }
     }
 
     private void OpenConnections()
     {
-        Show();
-
         if (_connectionsWindow is null)
         {
             _connectionsWindow = new ConnectionsWindow();
             _connectionsWindow.Closed += (_, _) => _connectionsWindow = null;
             _connectionsWindow.Show();
         }
-        else
-        {
-            _connectionsWindow.Activate();
-        }
+
+        _connectionsWindow.Activate();
     }
 
     private void OnConnectionsClick(object sender, RoutedEventArgs e) => OpenConnections();
 
-    private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    private void OnHideClick(object sender, RoutedEventArgs e) => Hide();
+
+    private void OnClosing(object? sender, CancelEventArgs e)
     {
         if (_exitRequested)
         {
@@ -104,6 +131,8 @@ public partial class MainWindow : Window
         }
 
         _cleanedUp = true;
+        SystemParameters.StaticPropertyChanged -= OnSystemParameterChanged;
+        SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         _viewModel.Dispose();
         _tray.Dispose();
         _connectionsWindow?.Close();
