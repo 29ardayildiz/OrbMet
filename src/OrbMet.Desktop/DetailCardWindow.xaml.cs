@@ -15,7 +15,9 @@ public partial class DetailCardWindow : Window
 {
     private readonly DispatcherTimer _clock;
     private Rect _strip;
+    private Rect _workArea;
     private double _ringCentreY;
+    private bool _opensRight;
     private bool _tailOnRight = true;
 
     public DetailCardWindow()
@@ -47,17 +49,20 @@ public partial class DetailCardWindow : Window
 
     /// <summary>
     /// Shows the card for a slot. <paramref name="strip"/> is the strip's
-    /// bounds and <paramref name="ringCentreY"/> the ring's centre, both in DIPs.
+    /// bounds, <paramref name="ringCentreY"/> the ring's centre and
+    /// <paramref name="workArea"/> the strip's display, all in DIPs.
+    /// <paramref name="opensRight"/> is the side it prefers when both fit.
     /// </summary>
-    public void ShowFor(ProviderSlotViewModel slot, Rect strip, double ringCentreY)
+    public void ShowFor(ProviderSlotViewModel slot, Rect strip, double ringCentreY, Rect workArea, bool opensRight)
     {
         slot.UpdateDetails(DateTimeOffset.UtcNow, TimeZoneInfo.Local);
         DataContext = slot;
         _strip = strip;
         _ringCentreY = ringCentreY;
+        _workArea = workArea;
+        _opensRight = opensRight;
 
-        var area = SystemParameters.WorkArea;
-        MaxHeight = Math.Max(0, area.Height - 2 * PanelMetrics.WorkAreaMargin);
+        MaxHeight = Math.Max(0, workArea.Height - 2 * PanelMetrics.WorkAreaMargin);
 
         if (!IsVisible)
         {
@@ -69,16 +74,18 @@ public partial class DetailCardWindow : Window
 
     private void Place()
     {
-        var area = SystemParameters.WorkArea;
+        var area = _workArea;
 
-        // Left of the strip with the tail pointing right; the other side only
-        // when the left has no room.
-        var left = _strip.Left - PanelMetrics.CardGap - ActualWidth;
-        var tailOnRight = left >= area.Left;
-        if (!tailOnRight)
-        {
-            left = _strip.Right + PanelMetrics.CardGap;
-        }
+        // The preferred side, or the other one when the preferred has no room.
+        var leftOfStrip = _strip.Left - PanelMetrics.CardGap - ActualWidth;
+        var rightOfStrip = _strip.Right + PanelMetrics.CardGap;
+        var fitsLeft = leftOfStrip >= area.Left;
+        var fitsRight = rightOfStrip + ActualWidth <= area.Right;
+        var opensRight = _opensRight ? fitsRight || !fitsLeft : !fitsLeft && fitsRight;
+
+        // Opening to the right, the strip is on the card's left, so the tail is too.
+        var tailOnRight = !opensRight;
+        var left = opensRight ? rightOfStrip : leftOfStrip;
 
         var top = _ringCentreY - ActualHeight / 2;
         top = Math.Min(top, area.Bottom - PanelMetrics.WorkAreaMargin - ActualHeight);

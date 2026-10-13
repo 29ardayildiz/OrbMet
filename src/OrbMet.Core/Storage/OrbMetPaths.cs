@@ -36,6 +36,8 @@ public sealed class OrbMetPaths
 
     public string LogsDirectory => Path.Combine(DataRoot, "logs");
 
+    public string PanelPositionFile => Path.Combine(DataRoot, "panel.json");
+
     public static OrbMetPaths FromEnvironment()
     {
         var localAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");

@@ -8,7 +8,6 @@
         mc:Ignorable="d"
         Title="OrbMet"
         Width="{x:Static infra:PanelMetrics.StripWidth}"
-        SizeToContent="Height"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -21,7 +20,11 @@
         TextOptions.TextFormattingMode="Display">
     <!-- No background on the grid: only the drawn outline and the slots take
          the pointer, so the corners outside the shape click through. -->
-    <Grid>
+    <Grid x:Name="Root"
+          PreviewMouseLeftButtonDown="OnPress"
+          MouseMove="OnPointerMove"
+          MouseLeftButtonUp="OnRelease"
+          LostMouseCapture="OnLostCapture">
         <Grid.ContextMenu>
             <ContextMenu>
                 <MenuItem Header="Yenile"
@@ -36,11 +39,12 @@
             </ContextMenu>
         </Grid.ContextMenu>
 
-        <!-- Docked outline; its geometry is built from the window's size. -->
+        <!-- Docked or floating outline; its geometry is built from the window's size. -->
         <Path x:Name="Berth" Fill="Black" />
 
-        <!-- 31 + 15 is the 46 DIP end padding; 15 + 15 is the 30 DIP gap between slots. -->
-        <ItemsControl ItemsSource="{Binding Providers}" Margin="0,31">
+        <!-- Margin + each slot's 15 is the end padding (set in code: docked 46,
+             floating 22); 15 + 15 is the 30 DIP gap between slots. -->
+        <ItemsControl x:Name="Slots" ItemsSource="{Binding Providers}" Margin="0,31">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Height="{x:Static infra:PanelMetrics.SlotHeight}"
@@ -55,8 +59,7 @@
                                             IsSelected="{Binding IsSelected}"
                                             IsRefreshing="{Binding IsRefreshing}"
                                             Mark="{Binding Mark}"
-                                            MouseEnter="OnRingMouseEnter"
-                                            MouseLeftButtonUp="OnRingClick" />
+                                            MouseEnter="OnRingMouseEnter" />
                         <TextBlock Text="{Binding PercentText}"
                                    Height="{x:Static infra:PanelMetrics.PercentHeight}"
                                    Margin="0,6,0,0"

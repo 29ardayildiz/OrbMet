@@ -60,6 +60,15 @@ internal static class DockBerth
         return geometry;
     }
 
+    /// <summary>A strip off the edge is a true capsule: half-circle ends, not squircles.</summary>
+    public static Geometry Floating(double width, double height)
+    {
+        var radius = Math.Min(width, height) / 2;
+        var geometry = new RectangleGeometry(new Rect(0, 0, width, height), radius, radius);
+        geometry.Freeze();
+        return geometry;
+    }
+
     /// <summary>A quarter superellipse from <paramref name="start"/> to <paramref name="end"/> around the centre.</summary>
     private static void AddCorner(PathSegmentCollection segments, Point center, double radius, Vector start, Vector end)
     {

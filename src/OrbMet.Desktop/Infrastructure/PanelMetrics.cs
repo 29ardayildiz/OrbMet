@@ -18,6 +18,23 @@ public static class PanelMetrics
     /// <summary>From the strip's top to its first slot when docked, flare included.</summary>
     public const double DockedEndPadding = 46;
 
+    /// <summary>
+    /// End padding of a floating strip: the docked padding less the flare, so
+    /// the visible breathing room above the first ring is the same.
+    /// </summary>
+    public const double FloatingEndPadding = DockedEndPadding - FlareHeight;
+
+    /// <summary>A small move before a press counts as a drag, so a click stays a click.</summary>
+    public const double DragThreshold = 3;
+
+    /// <summary>The strip's length for a number of slots, docked or floating.</summary>
+    public static double RailHeight(int slots, bool docked)
+    {
+        var count = Math.Max(slots, 0);
+        var padding = docked ? DockedEndPadding : FloatingEndPadding;
+        return 2 * padding + count * SlotHeight + Math.Max(count - 1, 0) * SlotSpacing;
+    }
+
     /// <summary>Outer corners of the docked strip: radius of a 4th-order superellipse.</summary>
     public const double DockedCornerRadius = 26;
 
