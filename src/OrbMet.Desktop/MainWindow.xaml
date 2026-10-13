@@ -45,12 +45,18 @@
         <!-- Margin + each slot's 15 is the end padding (set in code: docked 46,
              floating 22); 15 + 15 is the 30 DIP gap between slots. -->
         <ItemsControl x:Name="Slots" ItemsSource="{Binding Providers}" Margin="0,31">
+            <!-- UI Automation sees each slot through its container, which would
+                 otherwise be named after the view model's type. -->
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="ContentPresenter">
+                    <Setter Property="AutomationProperties.Name" Value="{Binding AccessibleText}" />
+                </Style>
+            </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Height="{x:Static infra:PanelMetrics.SlotHeight}"
                                 Margin="0,15"
-                                Background="Transparent"
-                                AutomationProperties.Name="{Binding AccessibleText}">
+                                Background="Transparent">
                         <controls:UsageRing Width="{x:Static infra:PanelMetrics.RingDiameter}"
                                             Height="{x:Static infra:PanelMetrics.RingDiameter}"
                                             HorizontalAlignment="Center"

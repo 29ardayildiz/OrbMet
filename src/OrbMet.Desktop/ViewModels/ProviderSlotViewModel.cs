@@ -25,6 +25,7 @@ public sealed class ProviderSlotViewModel : ObservableObject
     private string? _message = CheckingText;
     private string? _footnote;
     private string? _planText;
+    private bool _isReceiving;
     private IReadOnlyList<UsageWindowRowViewModel> _rows = Array.Empty<UsageWindowRowViewModel>();
 
     public ProviderSlotViewModel(ProviderId providerId, string displayName, string mark)
@@ -120,6 +121,16 @@ public sealed class ProviderSlotViewModel : ObservableObject
         private set => SetProperty(ref _planText, value);
     }
 
+    /// <summary>
+    /// The provider is connected and its last reading is fresh: data is
+    /// arriving, not merely remembered from an earlier session.
+    /// </summary>
+    public bool IsReceiving
+    {
+        get => _isReceiving;
+        private set => SetProperty(ref _isReceiving, value);
+    }
+
     public IReadOnlyList<UsageWindowRowViewModel> Rows
     {
         get => _rows;
@@ -158,6 +169,9 @@ public sealed class ProviderSlotViewModel : ObservableObject
         }
 
         var snapshot = usage.Snapshot;
+        IsReceiving = snapshot.ConnectionState == ConnectionState.Ready
+            && snapshot.Freshness == Freshness.Fresh
+            && snapshot.Windows.Count > 0;
         Rows = snapshot.Windows.Select(window => BuildRow(window, nowUtc, zone)).ToList();
         Message = BuildMessage(snapshot, nowUtc);
         Footnote = snapshot.Windows.Count > 0 && snapshot.Freshness == Freshness.Stale

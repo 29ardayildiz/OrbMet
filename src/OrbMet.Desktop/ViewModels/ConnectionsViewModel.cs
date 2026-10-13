@@ -9,7 +9,11 @@ namespace OrbMet.Desktop.ViewModels;
 /// </summary>
 public sealed class ConnectionsViewModel : ObservableObject
 {
+    private const string WaitingDetail = "Claude Code'un sonraki yanıtı bekleniyor.";
+    private const string ReceivingDetail = "Claude Code kullanım verisini OrbMet'e gönderiyor.";
+
     private readonly Func<ClaudeStatusLineIntegration?> _integrationFactory;
+    private readonly Func<bool> _isReceiving;
     private readonly string? _captureExecutablePath;
     private readonly string? _settingsPath;
 
@@ -19,12 +23,15 @@ public sealed class ConnectionsViewModel : ObservableObject
     private bool _canToggle;
     private bool _isBusy;
     private bool _connected;
+    private bool _showsConnectedDetail;
 
     public ConnectionsViewModel(
         string? captureExecutablePath,
         string? settingsPath,
-        Func<ClaudeStatusLineIntegration?> integrationFactory)
+        Func<ClaudeStatusLineIntegration?> integrationFactory,
+        Func<bool> isReceiving)
     {
+        _isReceiving = isReceiving ?? throw new ArgumentNullException(nameof(isReceiving));
         _captureExecutablePath = captureExecutablePath;
         _settingsPath = settingsPath;
         _integrationFactory = integrationFactory ?? throw new ArgumentNullException(nameof(integrationFactory));
@@ -105,12 +112,7 @@ public sealed class ConnectionsViewModel : ObservableObject
 
         if (state.Connected)
         {
-            SetState(
-                "Bağlı",
-                "Claude Code'un sonraki yanıtı bekleniyor.",
-                "Ayır",
-                canToggle: true,
-                connected: true);
+            SetConnected("Bağlı");
         }
         else
         {
@@ -164,12 +166,7 @@ public sealed class ConnectionsViewModel : ObservableObject
         switch (result.Status)
         {
             case ClaudeIntegrationStatus.Connected:
-                SetState(
-                    "Bağlandı",
-                    "Claude Code'un sonraki yanıtı bekleniyor.",
-                    "Ayır",
-                    canToggle: true,
-                    connected: true);
+                SetConnected("Bağlandı");
                 break;
 
             case ClaudeIntegrationStatus.Disconnected:
@@ -207,8 +204,31 @@ public sealed class ConnectionsViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Re-reads whether Claude's data is arriving; the panel calls this when a
+    /// reading lands while the window is open.
+    /// </summary>
+    public void RefreshReceiving()
+    {
+        if (_showsConnectedDetail)
+        {
+            DetailText = ConnectedDetail;
+        }
+    }
+
+    // Connected only says the status line points at OrbMet; whether data has
+    // actually come through is a separate fact, and the detail says which.
+    private string ConnectedDetail => _isReceiving() ? ReceivingDetail : WaitingDetail;
+
+    private void SetConnected(string status)
+    {
+        SetState(status, ConnectedDetail, "Ayır", canToggle: true, connected: true);
+        _showsConnectedDetail = true;
+    }
+
     private void SetState(string status, string detail, string button, bool canToggle, bool connected)
     {
+        _showsConnectedDetail = false;
         StatusText = status;
         DetailText = detail;
         ButtonText = button;
