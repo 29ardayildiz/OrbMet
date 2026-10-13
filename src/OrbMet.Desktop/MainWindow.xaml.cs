@@ -379,7 +379,7 @@ public partial class MainWindow : Window
     {
         if (_connectionsWindow is null)
         {
-            _connectionsWindow = new ConnectionsWindow();
+            _connectionsWindow = new ConnectionsWindow(_viewModel.Claude, _viewModel.Codex);
             _connectionsWindow.Closed += (_, _) => _connectionsWindow = null;
             _connectionsWindow.Show();
         }

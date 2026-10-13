@@ -24,6 +24,7 @@ public sealed class ProviderSlotViewModel : ObservableObject
     private string _accessibleText = string.Empty;
     private string? _message = CheckingText;
     private string? _footnote;
+    private string? _planText;
     private IReadOnlyList<UsageWindowRowViewModel> _rows = Array.Empty<UsageWindowRowViewModel>();
 
     public ProviderSlotViewModel(ProviderId providerId, string displayName, string mark)
@@ -112,6 +113,13 @@ public sealed class ProviderSlotViewModel : ObservableObject
         private set => SetProperty(ref _footnote, value);
     }
 
+    /// <summary>"Plan: Plus" in the Connections window; null when the provider did not report one.</summary>
+    public string? PlanText
+    {
+        get => _planText;
+        private set => SetProperty(ref _planText, value);
+    }
+
     public IReadOnlyList<UsageWindowRowViewModel> Rows
     {
         get => _rows;
@@ -128,6 +136,7 @@ public sealed class ProviderSlotViewModel : ObservableObject
         HasReading = RingPercent is not null;
         IsSpent = IsExhausted || RingPercent >= 100;
         PercentText = UsageText.Percent(RingPercent);
+        PlanText = UsageText.Plan(usage.Snapshot.PlanName);
 
         UpdateDetails(DateTimeOffset.UtcNow, TimeZoneInfo.Local);
 

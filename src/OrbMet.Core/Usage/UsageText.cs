@@ -101,6 +101,22 @@ public static class UsageText
             : $"Sıfırlanma {local.ToString("d MMM HH:mm", Turkish)}";
     }
 
+    /// <summary>
+    /// "Plan: Plus" for the Connections window, or null when the provider did
+    /// not report a plan. The reported name is only capitalised, never mapped,
+    /// and invariantly so the English "individual" does not become "İndividual".
+    /// </summary>
+    public static string? Plan(string? planName)
+    {
+        if (string.IsNullOrWhiteSpace(planName))
+        {
+            return null;
+        }
+
+        var name = planName.Trim();
+        return $"Plan: {char.ToUpperInvariant(name[0])}{name[1..]}";
+    }
+
     /// <summary>True once a reported reset moment has passed.</summary>
     public static bool IsPast(DateTimeOffset? resetsAtUtc, DateTimeOffset nowUtc) =>
         resetsAtUtc is { } resetsAt && resetsAt <= nowUtc;

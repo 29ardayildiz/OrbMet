@@ -5,15 +5,30 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="OrbMet Bağlantılar"
-        Height="400" Width="560"
+        Width="560"
+        SizeToContent="Height"
         Background="#15171C"
         FontFamily="Segoe UI"
         TextOptions.TextFormattingMode="Display">
+    <Window.Resources>
+        <Style x:Key="PlanLine" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#B6BDCA" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+            <Style.Triggers>
+                <Trigger Property="Text" Value="">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
@@ -44,6 +59,9 @@
                            FontSize="12"
                            TextWrapping="Wrap"
                            Margin="0,6,0,0" />
+                <TextBlock x:Name="ClaudePlan"
+                           Text="{Binding PlanText, TargetNullValue=''}"
+                           Style="{StaticResource PlanLine}" />
                 <Button Content="{Binding ButtonText}"
                         Command="{Binding ToggleCommand}"
                         IsEnabled="{Binding CanToggle}"
@@ -58,7 +76,37 @@
             </StackPanel>
         </Border>
 
-        <StackPanel Grid.Row="2" VerticalAlignment="Bottom" Margin="0,16,0,0">
+        <!-- Codex uses its own sign-in; there is nothing to connect, only its state and plan. -->
+        <Border x:Name="CodexCard"
+                Grid.Row="2"
+                Background="#1D2027"
+                BorderBrush="#343945"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="16"
+                Margin="0,12,0,0">
+            <StackPanel>
+                <TextBlock Text="Codex"
+                           Foreground="#F4F6FA"
+                           FontSize="16"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Message, TargetNullValue='Bağlı'}"
+                           Foreground="#B6B0FF"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap"
+                           Margin="0,8,0,0" />
+                <TextBlock Text="Codex'in kendi oturumu kullanılır; ayrıca bağlamak gerekmez."
+                           Foreground="#B6BDCA"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Margin="0,6,0,0" />
+                <TextBlock Text="{Binding PlanText, TargetNullValue=''}"
+                           Style="{StaticResource PlanLine}" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="3" Margin="0,16,0,0">
             <TextBlock Text="{Binding SettingsPathText}"
                        Foreground="#929BAA"
                        FontSize="11"

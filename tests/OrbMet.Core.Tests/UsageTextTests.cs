@@ -116,4 +116,23 @@ public class UsageTextTests
         Assert.Equal("3 sa önce itibarıyla", UsageText.StaleFootnote(Now.AddHours(-3), Now, Plus3));
         Assert.Equal("11 Eki 13:00 itibarıyla", UsageText.StaleFootnote(Now.AddDays(-2), Now, Plus3));
     }
+
+    [Theory]
+    [InlineData("plus", "Plan: Plus")]
+    [InlineData(" pro ", "Plan: Pro")]
+    [InlineData("individual", "Plan: Individual")]
+    [InlineData("Max", "Plan: Max")]
+    public void PlanIsTheReportedNameCapitalised(string reported, string expected)
+    {
+        Assert.Equal(expected, UsageText.Plan(reported));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void UnreportedPlanShowsNothing(string? reported)
+    {
+        Assert.Null(UsageText.Plan(reported));
+    }
 }

@@ -6,16 +6,21 @@ using OrbMet.Desktop.ViewModels;
 
 namespace OrbMet.Desktop;
 
-/// <summary>Connect or disconnect Claude Code's status line.</summary>
+/// <summary>
+/// Connect or disconnect Claude Code's status line, and see each provider's
+/// reported plan, which the detail card leaves out (design.md 7).
+/// </summary>
 public partial class ConnectionsWindow : Window
 {
     private readonly ConnectionsViewModel _viewModel;
 
-    public ConnectionsWindow()
+    public ConnectionsWindow(ProviderSlotViewModel claude, ProviderSlotViewModel codex)
     {
         InitializeComponent();
         _viewModel = BuildViewModel();
         DataContext = _viewModel;
+        ClaudePlan.DataContext = claude;
+        CodexCard.DataContext = codex;
         Loaded += async (_, _) => await _viewModel.RefreshAsync();
     }
 
