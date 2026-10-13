@@ -14,13 +14,6 @@ public sealed class UsageRing : FrameworkElement
 {
     private const double Thickness = 3.0;
 
-    private static readonly Brush TrackBrush = Freeze(Color.FromRgb(0x41, 0x49, 0x57));
-    private static readonly Brush NormalBrush = Freeze(Color.FromRgb(0x55, 0xD6, 0xA0));
-    private static readonly Brush CautionBrush = Freeze(Color.FromRgb(0xF3, 0xC5, 0x6B));
-    private static readonly Brush HighBrush = Freeze(Color.FromRgb(0xF5, 0x82, 0x82));
-    private static readonly Brush BlockedBrush = Freeze(Color.FromRgb(0xE8, 0x5B, 0x6B));
-    private static readonly Brush GlyphBrush = Freeze(Color.FromRgb(0xF4, 0xF6, 0xFA));
-
     public static readonly DependencyProperty PercentProperty = DependencyProperty.Register(
         nameof(Percent),
         typeof(double?),
@@ -72,12 +65,12 @@ public sealed class UsageRing : FrameworkElement
         }
 
         var center = new Point(ActualWidth / 2, ActualHeight / 2);
-        drawingContext.DrawEllipse(null, new Pen(TrackBrush, Thickness), center, radius, radius);
+        drawingContext.DrawEllipse(null, new Pen(UsagePalette.Track, Thickness), center, radius, radius);
 
         if (Percent is { } percent && percent > 0)
         {
             var fraction = Math.Min(percent, 100) / 100.0;
-            var pen = new Pen(BrushFor(percent), Thickness)
+            var pen = new Pen(UsagePalette.For(percent, IsExhausted), Thickness)
             {
                 StartLineCap = PenLineCap.Flat,
                 EndLineCap = PenLineCap.Flat,
@@ -96,21 +89,6 @@ public sealed class UsageRing : FrameworkElement
         DrawGlyph(drawingContext, center);
     }
 
-    private Brush BrushFor(double percent)
-    {
-        if (IsExhausted)
-        {
-            return BlockedBrush;
-        }
-
-        if (percent >= 75)
-        {
-            return HighBrush;
-        }
-
-        return percent >= 50 ? CautionBrush : NormalBrush;
-    }
-
     private void DrawGlyph(DrawingContext drawingContext, Point center)
     {
         if (string.IsNullOrEmpty(Glyph))
@@ -125,7 +103,7 @@ public sealed class UsageRing : FrameworkElement
             FlowDirection.LeftToRight,
             new Typeface("Segoe UI"),
             11,
-            GlyphBrush,
+            UsagePalette.TextPrimary,
             pixelsPerDip);
 
         drawingContext.DrawText(
@@ -160,12 +138,5 @@ public sealed class UsageRing : FrameworkElement
     {
         var radians = degrees * Math.PI / 180.0;
         return new Point(center.X + radius * Math.Cos(radians), center.Y + radius * Math.Sin(radians));
-    }
-
-    private static Brush Freeze(Color color)
-    {
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
     }
 }

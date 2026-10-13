@@ -24,8 +24,12 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
     {
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
 
-        Claude = new ProviderSlotViewModel("Claude Code", "C");
-        Codex = new ProviderSlotViewModel("Codex", "X");
+        Claude = new ProviderSlotViewModel(
+            ProviderId.ClaudeCode, "Claude Code", "C",
+            "Claude Code'da bir yanıt geldiğinde güncellenir. Yenile yalnızca son kaydı yeniden okur.");
+        Codex = new ProviderSlotViewModel(
+            ProviderId.Codex, "Codex", "X",
+            "Codex'ten 2 dakikada bir okunur.");
         Providers = new ObservableCollection<ProviderSlotViewModel> { Claude, Codex };
 
         RefreshCommand = new RelayCommand(RefreshAsync, () => !IsRefreshing);

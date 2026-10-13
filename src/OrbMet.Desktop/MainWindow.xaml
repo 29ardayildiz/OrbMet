@@ -17,6 +17,7 @@
         ShowActivated="False"
         Topmost="True"
         WindowStartupLocation="Manual"
+        MouseLeave="OnStripMouseLeave"
         FontFamily="Segoe UI"
         TextOptions.TextFormattingMode="Display">
     <!-- 8 DIP padding plus each slot's 4 DIP margin gives the 12 DIP outer
@@ -47,7 +48,8 @@
                                 Margin="0,4"
                                 VerticalAlignment="Center"
                                 Background="Transparent"
-                                ToolTip="{Binding ToolTipText}"
+                                MouseEnter="OnSlotMouseEnter"
+                                MouseLeftButtonUp="OnSlotClick"
                                 AutomationProperties.Name="{Binding AccessibleText}">
                         <controls:UsageRing Width="{x:Static infra:PanelMetrics.RingDiameter}"
                                             Height="{x:Static infra:PanelMetrics.RingDiameter}"

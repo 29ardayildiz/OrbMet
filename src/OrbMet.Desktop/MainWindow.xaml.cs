@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Input;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using OrbMet.Core.Providers;
 using OrbMet.Core.Providers.Claude;
@@ -20,6 +22,11 @@ public partial class MainWindow : Window
 {
     private readonly PanelViewModel _viewModel;
     private readonly TrayIcon _tray;
+    private readonly DetailCardWindow _card;
+    private readonly DispatcherTimer _cardOpenTimer;
+    private readonly DispatcherTimer _cardCloseTimer;
+    private FrameworkElement? _hoveredSlot;
+    private bool _cardPinned;
     private ConnectionsWindow? _connectionsWindow;
     private bool _exitRequested;
     private bool _cleanedUp;
@@ -43,6 +50,36 @@ public partial class MainWindow : Window
             openConnections: OpenConnections,
             refresh: () => _ = _viewModel.RefreshAsync(),
             exit: ExitApplication);
+
+        _card = new DetailCardWindow(
+            refresh: () => _ = _viewModel.RefreshAsync(),
+            openConnections: OpenConnections,
+            close: HideCard);
+
+        _cardOpenTimer = new DispatcherTimer { Interval = PanelMetrics.CardOpenDelay };
+        _cardOpenTimer.Tick += (_, _) =>
+        {
+            _cardOpenTimer.Stop();
+            if (_hoveredSlot is { IsMouseOver: true } slot)
+            {
+                ShowCardFor(slot);
+            }
+        };
+
+        _cardCloseTimer = new DispatcherTimer { Interval = PanelMetrics.CardCloseDelay };
+        _cardCloseTimer.Tick += (_, _) =>
+        {
+            _cardCloseTimer.Stop();
+
+            // The pointer may be crossing the gap between strip and card.
+            if (!_cardPinned && !IsMouseOver && !_card.IsMouseOver)
+            {
+                _card.Hide();
+            }
+        };
+
+        _card.MouseEnter += (_, _) => _cardCloseTimer.Stop();
+        _card.MouseLeave += (_, _) => ScheduleCardClose();
 
         SourceInitialized += (_, _) => NoActivateWindow.Apply(this);
         SizeChanged += (_, _) => PlaceOnRightEdge();
@@ -77,11 +114,91 @@ public partial class MainWindow : Window
     private void OnDisplaySettingsChanged(object? sender, EventArgs e) =>
         Dispatcher.BeginInvoke(PlaceOnRightEdge);
 
+    private void OnSlotMouseEnter(object sender, MouseEventArgs e)
+    {
+        _cardCloseTimer.Stop();
+        _hoveredSlot = (FrameworkElement)sender;
+
+        if (_cardPinned)
+        {
+            return;
+        }
+
+        // Moving between slots while the card is up swaps it without a delay.
+        if (_card.IsVisible)
+        {
+            ShowCardFor(_hoveredSlot);
+        }
+        else
+        {
+            _cardOpenTimer.Stop();
+            _cardOpenTimer.Start();
+        }
+    }
+
+    private void OnSlotClick(object sender, MouseButtonEventArgs e)
+    {
+        var element = (FrameworkElement)sender;
+        _cardOpenTimer.Stop();
+
+        // A click pins the card; clicking the same slot again releases it.
+        if (_cardPinned && ReferenceEquals(_card.Slot, element.DataContext))
+        {
+            HideCard();
+            return;
+        }
+
+        _cardPinned = true;
+        ShowCardFor(element);
+    }
+
+    private void OnStripMouseLeave(object sender, MouseEventArgs e)
+    {
+        _cardOpenTimer.Stop();
+        ScheduleCardClose();
+    }
+
+    private void ScheduleCardClose()
+    {
+        if (_cardPinned || !_card.IsVisible)
+        {
+            return;
+        }
+
+        _cardCloseTimer.Stop();
+        _cardCloseTimer.Start();
+    }
+
+    private void ShowCardFor(FrameworkElement slotElement)
+    {
+        if (slotElement.DataContext is not ProviderSlotViewModel slot || !IsVisible)
+        {
+            return;
+        }
+
+        var slotTop = Top + slotElement.TranslatePoint(new Point(0, 0), this).Y;
+        _card.ShowFor(slot, new Rect(Left, Top, ActualWidth, ActualHeight), slotTop);
+    }
+
+    private void HideCard()
+    {
+        _cardPinned = false;
+        _cardOpenTimer.Stop();
+        _cardCloseTimer.Stop();
+        _card.Hide();
+    }
+
+    private void HidePanel()
+    {
+        HideCard();
+        Hide();
+    }
+
     private void TogglePanel()
     {
         if (IsVisible)
         {
-            Hide();
+            HidePanel();
         }
         else
         {
@@ -103,7 +220,7 @@ public partial class MainWindow : Window
 
     private void OnConnectionsClick(object sender, RoutedEventArgs e) => OpenConnections();
 
-    private void OnHideClick(object sender, RoutedEventArgs e) => Hide();
+    private void OnHideClick(object sender, RoutedEventArgs e) => HidePanel();
 
     private void OnClosing(object? sender, CancelEventArgs e)
     {
@@ -114,7 +231,7 @@ public partial class MainWindow : Window
 
         // Hiding is not exiting; the tray keeps a way back to the panel.
         e.Cancel = true;
-        Hide();
+        HidePanel();
     }
 
     private void ExitApplication()
@@ -133,6 +250,9 @@ public partial class MainWindow : Window
         _cleanedUp = true;
         SystemParameters.StaticPropertyChanged -= OnSystemParameterChanged;
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+        _cardOpenTimer.Stop();
+        _cardCloseTimer.Stop();
+        _card.Close();
         _viewModel.Dispose();
         _tray.Dispose();
         _connectionsWindow?.Close();
