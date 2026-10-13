@@ -40,7 +40,7 @@ internal static partial class ProviderMarks
     {
         try
         {
-            var info = Application.GetResourceStream(new Uri($"pack://application:,,,/Assets/Marks/{name}.svg"));
+            var info = Application.GetResourceStream(new Uri($"pack://application:,,,/OrbMet.Desktop;component/Assets/Marks/{name}.svg"));
             if (info is null)
             {
                 return null;

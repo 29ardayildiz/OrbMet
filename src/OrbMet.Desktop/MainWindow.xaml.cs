@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     private PanelPosition _position;
     private PanelDock _shownDock;
     private ConnectionsWindow? _connectionsWindow;
+    private DetailsWindow? _detailsWindow;
 
     // A press on the strip: a click until it travels past the threshold, a drag after.
     private bool _pressed;
@@ -62,6 +63,7 @@ public partial class MainWindow : Window
 
         _tray = new TrayIcon(
             togglePanel: TogglePanel,
+            openDetails: OpenDetails,
             openConnections: OpenConnections,
             refresh: () => _ = _viewModel.RefreshAsync(showProgress: true),
             exit: ExitApplication);
@@ -387,6 +389,19 @@ public partial class MainWindow : Window
         _connectionsWindow.Activate();
     }
 
+    private void OpenDetails()
+    {
+        HideCard();
+        if (_detailsWindow is null)
+        {
+            _detailsWindow = new DetailsWindow(_viewModel.Providers);
+            _detailsWindow.Closed += (_, _) => _detailsWindow = null;
+            _detailsWindow.Show();
+        }
+
+        _detailsWindow.Activate();
+    }
+
     private void OnConnectionsClick(object sender, RoutedEventArgs e) => OpenConnections();
 
     private void OnHideClick(object sender, RoutedEventArgs e) => HidePanel();
@@ -424,5 +439,6 @@ public partial class MainWindow : Window
         _viewModel.Dispose();
         _tray.Dispose();
         _connectionsWindow?.Close();
+        _detailsWindow?.Close();
     }
 }

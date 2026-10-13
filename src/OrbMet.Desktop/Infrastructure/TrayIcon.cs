@@ -14,14 +14,16 @@ internal sealed class TrayIcon : IDisposable
 
     public TrayIcon(
         Action togglePanel,
+        Action openDetails,
         Action openConnections,
         Action refresh,
         Action exit)
     {
         var menu = new ContextMenuStrip();
         menu.Items.Add("Paneli göster / gizle", null, (_, _) => togglePanel());
-        menu.Items.Add("Bağlantılar", null, (_, _) => openConnections());
+        menu.Items.Add("Ayrıntıları aç", null, (_, _) => openDetails());
         menu.Items.Add("Yenile", null, (_, _) => refresh());
+        menu.Items.Add("Bağlantılar", null, (_, _) => openConnections());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Çıkış", null, (_, _) => exit());
 

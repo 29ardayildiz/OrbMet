@@ -16,25 +16,6 @@
         WindowStartupLocation="Manual"
         FontFamily="Segoe UI Variable Text, Segoe UI"
         TextOptions.TextFormattingMode="Display">
-    <Window.Resources>
-        <!-- design.md 5: every neutral is white at an opacity. -->
-        <SolidColorBrush x:Key="Text" Color="#FFFFFFFF" />
-        <SolidColorBrush x:Key="TextValue" Color="#E6FFFFFF" />
-        <SolidColorBrush x:Key="TextSecondary" Color="#8CFFFFFF" />
-        <SolidColorBrush x:Key="TextReset" Color="#73FFFFFF" />
-        <SolidColorBrush x:Key="TextFootnote" Color="#66FFFFFF" />
-        <SolidColorBrush x:Key="Spent" Color="#D9171F" />
-
-        <Style x:Key="CollapsedWhenNull" TargetType="TextBlock">
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="0,14,0,0" />
-            <Style.Triggers>
-                <Trigger Property="Text" Value="">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-    </Window.Resources>
 
     <Grid>
         <!-- Body and tail as one outline; rebuilt when the size or the tail's target changes. -->
@@ -43,92 +24,7 @@
         <ScrollViewer x:Name="Scroller"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled">
-            <StackPanel x:Name="Body">
-
-                <!-- 1. Logo and title -->
-                <StackPanel Orientation="Horizontal">
-                    <controls:ProviderMark Width="16"
-                                           Height="16"
-                                           Mark="{Binding Mark}"
-                                           Fill="{StaticResource Text}" />
-                    <TextBlock Text="{Binding CardTitle}"
-                               Foreground="{StaticResource Text}"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Margin="8,0,0,0"
-                               VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-
-                <!-- 2. One row per reported window -->
-                <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="0,14,0,0"
-                                        AutomationProperties.Name="{Binding AccessibleText}">
-                                <TextBlock Text="{Binding Title}"
-                                           Foreground="{StaticResource Text}"
-                                           FontSize="11.5"
-                                           TextTrimming="CharacterEllipsis" />
-                                <controls:UsageBar Height="6"
-                                                   Margin="0,7,0,0"
-                                                   Percent="{Binding Percent}"
-                                                   IsExhausted="{Binding IsExhausted}">
-                                    <controls:UsageBar.Style>
-                                        <Style TargetType="controls:UsageBar">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsExpired}" Value="True">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </controls:UsageBar.Style>
-                                </controls:UsageBar>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding UsedText}"
-                                               FontSize="11.5"
-                                               FontWeight="Medium"
-                                               Typography.NumeralAlignment="Tabular">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{StaticResource TextValue}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsSpent}" Value="True">
-                                                        <Setter Property="Foreground" Value="{StaticResource Spent}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding ResetText}"
-                                               Foreground="{StaticResource TextReset}"
-                                               FontSize="11.5"
-                                               Margin="8,0,0,0"
-                                               HorizontalAlignment="Right"
-                                               TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <!-- 3. Only when something needs saying -->
-                <TextBlock Text="{Binding Message, TargetNullValue=''}"
-                           Foreground="{StaticResource TextSecondary}"
-                           FontSize="12"
-                           Style="{StaticResource CollapsedWhenNull}" />
-
-                <!-- 4. Only for a stale reading -->
-                <TextBlock Text="{Binding Footnote, TargetNullValue=''}"
-                           Foreground="{StaticResource TextFootnote}"
-                           FontSize="11"
-                           Style="{StaticResource CollapsedWhenNull}" />
-            </StackPanel>
+            <controls:ProviderDetails x:Name="Body" />
         </ScrollViewer>
     </Grid>
 </Window>

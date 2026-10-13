@@ -1,0 +1,135 @@
+<UserControl x:Class="OrbMet.Desktop.Controls.ProviderDetails"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:OrbMet.Desktop.Controls">
+    <UserControl.Resources>
+        <!-- design.md 5: every neutral is white at an opacity. -->
+        <SolidColorBrush x:Key="Text" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="TextValue" Color="#E6FFFFFF" />
+        <SolidColorBrush x:Key="TextSecondary" Color="#8CFFFFFF" />
+        <SolidColorBrush x:Key="TextReset" Color="#73FFFFFF" />
+        <SolidColorBrush x:Key="TextFootnote" Color="#66FFFFFF" />
+        <SolidColorBrush x:Key="Spent" Color="#D9171F" />
+
+        <!-- A thin white ring; the system's dotted black one vanishes on black. -->
+        <Style x:Key="FocusRing">
+            <Setter Property="Control.Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Rectangle Margin="-6,-4"
+                                   RadiusX="6"
+                                   RadiusY="6"
+                                   Stroke="#CCFFFFFF"
+                                   StrokeThickness="1.5" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Tab stops only in the focusable details window; the hover card has no keyboard. -->
+        <Style x:Key="Reachable" TargetType="FrameworkElement">
+            <Setter Property="Focusable" Value="{Binding IsKeyboardReachable, RelativeSource={RelativeSource AncestorType=controls:ProviderDetails}}" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        </Style>
+
+        <Style x:Key="CollapsedWhenNull" TargetType="TextBlock" BasedOn="{StaticResource Reachable}">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,14,0,0" />
+            <Style.Triggers>
+                <Trigger Property="Text" Value="">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel>
+
+        <!-- 1. Logo and title -->
+        <StackPanel Orientation="Horizontal"
+                    Style="{StaticResource Reachable}"
+                    AutomationProperties.Name="{Binding CardTitle}">
+            <controls:ProviderMark Width="16"
+                                   Height="16"
+                                   Mark="{Binding Mark}"
+                                   Fill="{StaticResource Text}" />
+            <TextBlock Text="{Binding CardTitle}"
+                       Foreground="{StaticResource Text}"
+                       FontSize="14"
+                       FontWeight="SemiBold"
+                       Margin="8,0,0,0"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+
+        <!-- 2. One row per reported window -->
+        <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="0,14,0,0"
+                                Style="{StaticResource Reachable}"
+                                AutomationProperties.Name="{Binding AccessibleText}">
+                        <TextBlock Text="{Binding Title}"
+                                   Foreground="{StaticResource Text}"
+                                   FontSize="11.5"
+                                   TextTrimming="CharacterEllipsis" />
+                        <controls:UsageBar Height="6"
+                                           Margin="0,7,0,0"
+                                           Percent="{Binding Percent}"
+                                           IsExhausted="{Binding IsExhausted}">
+                            <controls:UsageBar.Style>
+                                <Style TargetType="controls:UsageBar">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsExpired}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </controls:UsageBar.Style>
+                        </controls:UsageBar>
+                        <Grid Margin="0,7,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding UsedText}"
+                                       FontSize="11.5"
+                                       FontWeight="Medium"
+                                       Typography.NumeralAlignment="Tabular">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource TextValue}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSpent}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource Spent}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding ResetText}"
+                                       Foreground="{StaticResource TextReset}"
+                                       FontSize="11.5"
+                                       Margin="8,0,0,0"
+                                       HorizontalAlignment="Right"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- 3. Only when something needs saying -->
+        <TextBlock Text="{Binding Message, TargetNullValue=''}"
+                   Foreground="{StaticResource TextSecondary}"
+                   FontSize="12"
+                   Style="{StaticResource CollapsedWhenNull}" />
+
+        <!-- 4. Only for a stale reading -->
+        <TextBlock Text="{Binding Footnote, TargetNullValue=''}"
+                   Foreground="{StaticResource TextFootnote}"
+                   FontSize="11"
+                   Style="{StaticResource CollapsedWhenNull}" />
+    </StackPanel>
+</UserControl>
