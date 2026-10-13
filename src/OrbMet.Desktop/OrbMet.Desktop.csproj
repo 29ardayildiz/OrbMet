@@ -10,6 +10,12 @@
     <Resource Include="Assets\Marks\*.svg" />
   </ItemGroup>
 
+  <!-- The app's own mark, made by tools/IconGen: the exe and windows use it
+       through ApplicationIcon, the tray loads it as a resource. -->
+  <ItemGroup>
+    <Resource Include="Assets\OrbMet.ico" />
+  </ItemGroup>
+
   <!-- WinForms is on only for the tray icon. Its implicit usings would collide
        with WPF's Application/MessageBox, so they are removed here and imported
        explicitly where needed. -->
@@ -25,6 +31,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>Assets\OrbMet.ico</ApplicationIcon>
   </PropertyGroup>
 
   <!-- Keep the capture helper beside the app so the same relative lookup works

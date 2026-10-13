@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Windows.Forms;
 
 namespace OrbMet.Desktop.Infrastructure;
@@ -10,6 +10,7 @@ namespace OrbMet.Desktop.Infrastructure;
 internal sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _notifyIcon;
+    private readonly Icon _icon;
     private bool _disposed;
 
     public TrayIcon(
@@ -27,14 +28,32 @@ internal sealed class TrayIcon : IDisposable
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Çıkış", null, (_, _) => exit());
 
+        _icon = LoadIcon();
         _notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = _icon,
             Text = "OrbMet",
             Visible = true,
             ContextMenuStrip = menu,
         };
         _notifyIcon.DoubleClick += (_, _) => togglePanel();
+    }
+
+    /// <summary>
+    /// The OrbMet mark at the tray's small-icon size, so a scaled display
+    /// gets its own frame instead of a stretched 16 px one.
+    /// </summary>
+    private static Icon LoadIcon()
+    {
+        var resource = System.Windows.Application.GetResourceStream(
+            new Uri("pack://application:,,,/OrbMet.Desktop;component/Assets/OrbMet.ico"));
+        if (resource is null)
+        {
+            return (Icon)SystemIcons.Application.Clone();
+        }
+
+        using var stream = resource.Stream;
+        return new Icon(stream, SystemInformation.SmallIconSize);
     }
 
     public void Dispose()
@@ -47,5 +66,6 @@ internal sealed class TrayIcon : IDisposable
         _disposed = true;
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
+        _icon.Dispose();
     }
 }
