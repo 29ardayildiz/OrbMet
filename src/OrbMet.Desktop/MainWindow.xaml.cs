@@ -31,7 +31,7 @@ public partial class MainWindow : Window
     private readonly PanelPositionStore _positionStore;
     private PanelPosition _position;
     private PanelDock _shownDock;
-    private bool _acrossLast;
+    private bool _reversed;
     private PanelPlan _plan = null!;
     private readonly List<SlotView> _slotViews = new();
     private ConnectionsWindow? _connectionsWindow;
@@ -78,7 +78,7 @@ public partial class MainWindow : Window
         _positionStore = new PanelPositionStore(paths.PanelPositionFile);
         _position = _positionStore.Load();
         _shownDock = _position.Dock;
-        _acrossLast = _position.AcrossLast;
+        _reversed = _position.Reversed;
 
         _viewModel = new PanelViewModel(coordinator);
         DataContext = _viewModel;
@@ -92,7 +92,7 @@ public partial class MainWindow : Window
         }
 
         _windowSize = RoomyWindowSize(SlotCount);
-        UsePlan(_shownDock, _acrossLast);
+        UsePlan(_shownDock, _reversed);
         ShowPlanAt(default, centre: true);
 
         _tray = new TrayIcon(
@@ -136,7 +136,7 @@ public partial class MainWindow : Window
         }
 
         var (area, _) = Displays.For(_position.DisplayId, this);
-        UsePlan(_position.Dock, _position.AcrossLast);
+        UsePlan(_position.Dock, _position.Reversed);
         var (x, y) = PanelLayout.RailOrigin(_position, area, _plan.Size.Width, _plan.Size.Height);
         ShowPlanAt(new Point(x, y), centre: true);
     }
@@ -157,12 +157,12 @@ public partial class MainWindow : Window
     /// where each provider sits. Ends any change of outline in progress;
     /// nothing on screen changes until it is shown.
     /// </summary>
-    private void UsePlan(PanelDock dock, bool acrossLast)
+    private void UsePlan(PanelDock dock, bool reversed)
     {
         StopReshape();
-        _plan = PanelOutline.For(dock, SlotCount, acrossLast);
+        _plan = PanelOutline.For(dock, SlotCount, reversed);
         _shownDock = dock;
-        _acrossLast = acrossLast;
+        _reversed = reversed;
     }
 
     /// <summary>
@@ -360,7 +360,7 @@ public partial class MainWindow : Window
         {
             from = ShownPose();
             var before = _plan.Size;
-            UsePlan(dock, _acrossLast);
+            UsePlan(dock, _reversed);
 
             // A new outline has nothing in common with where the old one was
             // held, so it is carried by its middle from here on.
@@ -375,12 +375,13 @@ public partial class MainWindow : Window
         var (x, y) = PanelLayout.DragOrigin(dock, wanted.X, wanted.Y, area, size.Width, size.Height);
         _origin = new Point(x, y);
 
-        // Into a corner the rings keep the order of the edge they came from:
-        // whichever arrangement of the L they reach with the least travel.
-        if (from is not null && PanelLayout.ShapeOf(dock) == PanelShape.Corner)
+        // The rings keep their order as the outline changes, so they carry on
+        // the way they were going: whichever order of the new outline they
+        // reach with the least travel.
+        if (from is not null)
         {
             var arrangements = new[] { false, true }
-                .Select(last => StripPose.Of(PanelOutline.For(dock, SlotCount, last), _origin).Centres())
+                .Select(reversed => StripPose.Of(PanelOutline.For(dock, SlotCount, reversed), _origin).Centres())
                 .ToList();
             UsePlan(dock, PanelLayout.NearestArrangement(from.Centres(), arrangements) == 1);
         }
@@ -411,7 +412,7 @@ public partial class MainWindow : Window
         }
 
         var (horizontal, vertical) = PanelLayout.Ratios(dock, x, y, area, size.Width, size.Height);
-        _dragPosition = new PanelPosition(dock, horizontal, vertical, displayId, _acrossLast);
+        _dragPosition = new PanelPosition(dock, horizontal, vertical, displayId, _reversed);
     }
 
     private void OnRelease(object sender, MouseButtonEventArgs e)

@@ -23,16 +23,20 @@ internal sealed record PanelPlan(Size Size, Geometry Outline, IReadOnlyList<Slot
 /// </summary>
 internal static class PanelOutline
 {
-    /// <param name="acrossLast">In a corner, the last slot takes the horizontal arm instead of the first.</param>
-    public static PanelPlan For(PanelDock dock, int slots, bool acrossLast = false)
+    /// <param name="reversed">
+    /// The slots run along the outline last to first: bottom to top,
+    /// right to left, or in an L from the vertical arm's end to the horizontal's.
+    /// </param>
+    public static PanelPlan For(PanelDock dock, int slots, bool reversed = false)
     {
         var count = Math.Max(slots, 1);
-        return PanelLayout.ShapeOf(dock) switch
+        var plan = PanelLayout.ShapeOf(dock) switch
         {
             PanelShape.Horizontal => Horizontal(count),
-            PanelShape.Corner when count >= 2 => Corner(count, PanelLayout.IsLeft(dock), PanelLayout.IsBottom(dock), acrossLast),
+            PanelShape.Corner when count >= 2 => Corner(count, PanelLayout.IsLeft(dock), PanelLayout.IsBottom(dock)),
             _ => Vertical(count),
         };
+        return reversed ? plan with { Slots = plan.Slots.Reverse().ToList() } : plan;
     }
 
     private static PanelPlan Vertical(int count)
@@ -62,10 +66,10 @@ internal static class PanelOutline
 
     /// <summary>
     /// The L for the top-right corner, then mirrored: a horizontal arm along
-    /// the top holding the first slot (or the last), the corner block, and a
-    /// vertical arm down the side holding the rest in order.
+    /// the top holding the first slot, the corner block, and a vertical arm
+    /// down the side holding the rest.
     /// </summary>
-    private static PanelPlan Corner(int count, bool left, bool bottom, bool acrossLast)
+    private static PanelPlan Corner(int count, bool left, bool bottom)
     {
         var t = PanelMetrics.StripWidth;
         var w = PanelMetrics.BesideEndPadding + PanelMetrics.BesideSlotWidth + PanelMetrics.CornerArmGap + t;
@@ -80,12 +84,6 @@ internal static class PanelOutline
         {
             var y = t + PanelMetrics.CornerArmGap + (k - 1) * (PanelMetrics.SlotHeight + PanelMetrics.SlotSpacing);
             frames.Add(new SlotFrame(new Rect(w - t, y, t, PanelMetrics.SlotHeight), PercentBeside: false));
-        }
-
-        if (acrossLast)
-        {
-            // The last slot takes the arm's place; the others move up one.
-            frames = frames.Skip(1).Append(frames[0]).ToList();
         }
 
         var horizontalArm = new Rect(0, 0, w, t);

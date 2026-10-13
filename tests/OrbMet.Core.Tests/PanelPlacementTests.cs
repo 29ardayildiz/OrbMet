@@ -166,18 +166,18 @@ public class PanelPlacementTests
     }
 
     [Fact]
-    public void StoreKeepsTheCornerOrder()
+    public void StoreKeepsTheRingOrder()
     {
         using var temp = new TempDirectory();
         var store = new PanelPositionStore(Path.Combine(temp.Path, "panel.json"));
-        var position = new PanelPosition(PanelDock.BottomLeft, 0, 1, null, AcrossLast: true);
+        var position = new PanelPosition(PanelDock.Bottom, 0.4, 1, null, Reversed: true);
 
         Assert.True(store.Save(position));
         Assert.Equal(position, store.Load());
     }
 
     [Fact]
-    public void AFileFromBeforeTheCornerOrderReadsAsFirstAcross()
+    public void AFileFromBeforeTheRingOrderReadsInOrder()
     {
         using var temp = new TempDirectory();
         var path = Path.Combine(temp.Path, "panel.json");
@@ -190,13 +190,27 @@ public class PanelPlacementTests
     public void RingsTakeTheArrangementTheyReachWithoutCrossing()
     {
         // A horizontal capsule along the bottom, Claude left of Codex, moving
-        // into the bottom-left L: Codex is nearer the vertical arm's slot.
+        // into the bottom-left L: Claude is nearer the vertical arm's slot,
+        // so Codex takes the horizontal arm.
         var now = new List<(double X, double Y)> { (40, 1040), (138, 1040) };
         var claudeAcross = new List<(double X, double Y)> { (110, 1040), (40, 950) };
         var codexAcross = new List<(double X, double Y)> { (40, 950), (110, 1040) };
 
         Assert.Equal(1, PanelLayout.NearestArrangement(now, new[] { claudeAcross, codexAcross }));
         Assert.Equal(0, PanelLayout.NearestArrangement(now, new[] { codexAcross, claudeAcross }));
+    }
+
+    [Fact]
+    public void RingsCarryOnTheWayTheyWereGoingOutOfACorner()
+    {
+        // The bottom-right L, Claude up the vertical arm and Codex along the
+        // bottom, slid left onto the bottom edge: Codex stays in front, so
+        // the capsule runs Codex then Claude rather than swapping them.
+        var now = new List<(double X, double Y)> { (1880, 950), (1790, 1040) };
+        var inOrder = new List<(double X, double Y)> { (1740, 1040), (1838, 1040) };
+        var reversed = new List<(double X, double Y)> { (1838, 1040), (1740, 1040) };
+
+        Assert.Equal(1, PanelLayout.NearestArrangement(now, new[] { inOrder, reversed }));
     }
 
     [Fact]

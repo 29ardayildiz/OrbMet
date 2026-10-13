@@ -46,11 +46,11 @@ public readonly record struct Box(double X, double Y, double Width, double Heigh
 /// <param name="HorizontalRatio">0 = left, 1 = right; used while floating or along the top/bottom.</param>
 /// <param name="VerticalRatio">0 = top, 1 = bottom; used while floating or along a side.</param>
 /// <param name="DisplayId">The display it was left on, or null for the primary.</param>
-/// <param name="AcrossLast">
-/// In a corner, the last provider takes the L's horizontal arm instead of the
-/// first, so the rings kept the order of the edge the strip came from.
+/// <param name="Reversed">
+/// The providers run along the strip last to first: the order a drag left
+/// them in, since rings keep their order as the strip changes shape.
 /// </param>
-public sealed record PanelPosition(PanelDock Dock, double HorizontalRatio, double VerticalRatio, string? DisplayId, bool AcrossLast = false)
+public sealed record PanelPosition(PanelDock Dock, double HorizontalRatio, double VerticalRatio, string? DisplayId, bool Reversed = false)
 {
     /// <summary>First run: docked right, vertically centred, on the primary display.</summary>
     public static PanelPosition Default { get; } = new(PanelDock.Right, 1, 0.5, null);
