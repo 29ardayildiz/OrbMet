@@ -2,8 +2,8 @@ namespace OrbMet.Desktop.Infrastructure;
 
 /// <summary>
 /// The panel's measurements in DIPs, kept in one place so drawing and
-/// placement never disagree. Values follow design.md sections 4 and 7, which
-/// take them from Pulse's standard size.
+/// placement never disagree. Values follow design.md sections 4 and 7; the
+/// ring and spacing come from Pulse's standard size.
 /// </summary>
 public static class PanelMetrics
 {
@@ -15,32 +15,18 @@ public static class PanelMetrics
     public const double SlotHeight = RingDiameter + RingToText + PercentHeight;
     public const double SlotSpacing = 30;
 
-    /// <summary>From the strip's top to its first slot when docked, flare included.</summary>
-    public const double DockedEndPadding = 46;
-
-    /// <summary>
-    /// End padding of a floating strip: the docked padding less the flare, so
-    /// the visible breathing room above the first ring is the same.
-    /// </summary>
-    public const double FloatingEndPadding = DockedEndPadding - FlareHeight;
+    /// <summary>From each end of the capsule to its nearest slot.</summary>
+    public const double EndPadding = 22;
 
     /// <summary>A small move before a press counts as a drag, so a click stays a click.</summary>
     public const double DragThreshold = 3;
 
-    /// <summary>The strip's length for a number of slots, docked or floating.</summary>
-    public static double RailHeight(int slots, bool docked)
+    /// <summary>The strip's length for a number of slots; docked and floating are the same capsule.</summary>
+    public static double RailHeight(int slots)
     {
         var count = Math.Max(slots, 0);
-        var padding = docked ? DockedEndPadding : FloatingEndPadding;
-        return 2 * padding + count * SlotHeight + Math.Max(count - 1, 0) * SlotSpacing;
+        return 2 * EndPadding + count * SlotHeight + Math.Max(count - 1, 0) * SlotSpacing;
     }
-
-    /// <summary>Outer corners of the docked strip: radius of a 4th-order superellipse.</summary>
-    public const double DockedCornerRadius = 26;
-
-    /// <summary>The concave sweep joining each end of the docked strip to the screen edge.</summary>
-    public const double FlareHeight = 24;
-    public const double FlareWidth = 38;
 
     /// <summary>Gap between the ring and the logo's backing disc, and the logo's share of that disc.</summary>
     public const double RingCentreGap = 4;
@@ -48,17 +34,16 @@ public static class PanelMetrics
 
     public const double WorkAreaMargin = 8;
 
-    /// <summary>The card's body; the window adds the tail's width beside it.</summary>
     public const double CardWidth = 250;
-    public const double CardTailWidth = 20;
-    public const double CardTailHeight = 40;
-    public const double CardWindowWidth = CardWidth + CardTailWidth;
     public const double CardPadding = 18;
 
     /// <summary>The ring's outer radius, so the card and the rings share one curve.</summary>
     public const double CardCornerRadius = (RingDiameter + RingThickness) / 2;
 
-    /// <summary>From the tail's tip to the strip.</summary>
+    /// <summary>The same radius for XAML, which cannot convert a double to a CornerRadius.</summary>
+    public static readonly System.Windows.CornerRadius CardCornerRadiusValue = new(CardCornerRadius);
+
+    /// <summary>From the card to the strip.</summary>
     public const double CardGap = 8;
 
     /// <summary>How often the pointer is sampled while the card is up (design.md 8.1).</summary>

@@ -37,11 +37,16 @@ does not imply endorsement.
 
 ## Pulse
 
-The panel's look and measurements follow [Pulse](https://github.com/qunqin24/Pulse),
-distributed under the Apache License 2.0 (full text in
-`licenses/Pulse-LICENSE.txt`).
+OrbMet's panel is inspired by [Pulse](https://github.com/qunqin24/Pulse), a
+macOS usage monitor distributed under the Apache License 2.0 (full text in
+`licenses/Pulse-LICENSE.txt`). The ring and spacing measurements, the
+usage-only colour scale and the interaction rules (instant hover, click a ring
+to refresh) follow Pulse's.
 
-`src/OrbMet.Desktop/Controls/DockBerth.cs` is adapted from Pulse's
-`DockBerthShape` (`Sources/Pulse/Panel/UsageDockView.swift`): the docked
-outline's superellipse corners and edge flares were ported from SwiftUI to WPF.
-Only the right-edge drawing and its mirror are kept.
+Earlier OrbMet revisions contained two shapes adapted from Pulse's source:
+`DockBerth.cs` (from `DockBerthShape` in `Sources/Pulse/Panel/UsageDockView.swift`)
+and `DetailBubble.cs` (from `UsageBubbleShape` in
+`Sources/Pulse/Panel/UsageBubbleShape.swift`), both ported from SwiftUI to
+WPF. They were replaced by OrbMet's own capsule strip and tailless card and
+are no longer in the source tree; this notice and the licence copy remain for
+the revisions that include them.

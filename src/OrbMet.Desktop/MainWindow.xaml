@@ -40,7 +40,8 @@
         </Grid.ContextMenu>
 
         <!-- Docked or floating outline; its geometry is built from the window's size. -->
-        <Path x:Name="Berth" Fill="Black" />
+        <!-- One capsule, docked or floating (design.md 4.2). -->
+        <Border Background="Black" CornerRadius="32" />
 
         <!-- Margin + each slot's 15 is the end padding (set in code: docked 46,
              floating 22); 15 + 15 is the 30 DIP gap between slots. -->

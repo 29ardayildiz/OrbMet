@@ -8,8 +8,8 @@ namespace OrbMet.Desktop.Controls;
 
 /// <summary>
 /// The usage ring from design.md section 6: a white 18% track, a round-capped
-/// arc clockwise from 12 o'clock in the usage colour, and the provider's logo
-/// in the middle. A missing value is the bare track, never a full ring. The
+/// arc clockwise from 12 o'clock in the usage colour with a white satellite
+/// dot riding its tip, and the provider's logo in the middle. A missing value is the bare track, never a full ring. The
 /// arc caps at a full circle while the text beside it keeps the raw value; a
 /// spent limit fills the ring whatever the number.
 /// </summary>
@@ -25,6 +25,7 @@ public sealed class UsageRing : FrameworkElement
     // 10 DIP at 0.42 gave 9/255, both effectively invisible.
     private const double HaloStroke = 12;
     private const double RefreshingArcOpacity = 0.3;
+    private const double SatelliteDiameter = 5.2;
     private const double RefreshSweep = 0.16;
     private static readonly TimeSpan RefreshPeriod = TimeSpan.FromSeconds(0.85);
 
@@ -185,6 +186,11 @@ public sealed class UsageRing : FrameworkElement
 
             ring.DrawGeometry(null, RoundPen(colour, thickness), arc);
 
+            // The satellite: OrbMet's own mark on the gauge, at the arc's
+            // tip, so it travels with the arc as it eases.
+            var tip = PointOnCircle(center, radius, ShownFractionTipDegrees() - 90);
+            ring.DrawEllipse(UsagePalette.Text, null, tip, SatelliteDiameter / 2, SatelliteDiameter / 2);
+
             if (IsRefreshing)
             {
                 ring.Pop();
@@ -202,6 +208,13 @@ public sealed class UsageRing : FrameworkElement
         }
 
         DrawMark(ring, center, size, thickness);
+    }
+
+    /// <summary>Where the arc ends, clockwise from 12 o'clock; a full ring ends back at 12.</summary>
+    private double ShownFractionTipDegrees()
+    {
+        var fraction = (double)GetValue(ShownFractionProperty);
+        return fraction >= 0.999 ? 0 : 360.0 * fraction;
     }
 
     /// <summary>The usage arc, a full circle when spent, or null when there is nothing to draw.</summary>

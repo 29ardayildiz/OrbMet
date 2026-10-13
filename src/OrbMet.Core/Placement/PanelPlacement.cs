@@ -46,6 +46,17 @@ public static class PanelLayout
     /// </summary>
     public const double DockDistance = 32;
 
+    /// <summary>
+    /// A docked strip stands this far inside the work area's edge rather than
+    /// touching it (design.md 4.2); the gap passes clicks through.
+    /// </summary>
+    public const double EdgeInset = 8;
+
+    /// <summary>The left edge of a strip docked to a side of a work area.</summary>
+    public static double DockedX(PanelDock side, Box workArea, double railWidth) => side == PanelDock.Left
+        ? workArea.X + EdgeInset
+        : workArea.Right - railWidth - EdgeInset;
+
     /// <summary>The strip's top-left corner for a position inside a work area.</summary>
     public static (double X, double Y) RailOrigin(PanelPosition position, Box workArea, double railWidth, double railHeight)
     {
@@ -53,8 +64,7 @@ public static class PanelLayout
 
         var x = position.Dock switch
         {
-            PanelDock.Left => workArea.X,
-            PanelDock.Right => workArea.Right - railWidth,
+            PanelDock.Left or PanelDock.Right => DockedX(position.Dock, workArea, railWidth),
 
             // Floating means not touching: a stored ratio that would put the
             // strip flush against a side is pulled back off it.

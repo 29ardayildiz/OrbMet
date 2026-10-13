@@ -4,7 +4,7 @@
         xmlns:controls="clr-namespace:OrbMet.Desktop.Controls"
         xmlns:infra="clr-namespace:OrbMet.Desktop.Infrastructure"
         Title="OrbMet ayrıntı"
-        Width="{x:Static infra:PanelMetrics.CardWindowWidth}"
+        Width="{x:Static infra:PanelMetrics.CardWidth}"
         SizeToContent="Height"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -17,14 +17,11 @@
         FontFamily="Segoe UI Variable Text, Segoe UI"
         TextOptions.TextFormattingMode="Display">
 
-    <Grid>
-        <!-- Body and tail as one outline; rebuilt when the size or the tail's target changes. -->
-        <Path x:Name="Bubble" Fill="Black" />
-
-        <ScrollViewer x:Name="Scroller"
-                      VerticalScrollBarVisibility="Auto"
+    <!-- A card standing apart from the strip, no tail (design.md 7.1). -->
+    <Border Background="Black" CornerRadius="{x:Static infra:PanelMetrics.CardCornerRadiusValue}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled">
             <controls:ProviderDetails x:Name="Body" />
         </ScrollViewer>
-    </Grid>
+    </Border>
 </Window>

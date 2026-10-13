@@ -28,7 +28,6 @@ public partial class DetailCardWindow : Window
     private Rect _strip;
     private Rect _workArea;
     private bool _opensRight;
-    private bool _tailOnRight = true;
 
     public DetailCardWindow()
     {
@@ -116,8 +115,6 @@ public partial class DetailCardWindow : Window
         var fitsRight = rightOfStrip + ActualWidth <= area.Right;
         var opensRight = _opensRight ? fitsRight || !fitsLeft : !fitsLeft && fitsRight;
 
-        // Opening to the right, the strip is on the card's left, so the tail is too.
-        var tailOnRight = !opensRight;
         var left = opensRight ? rightOfStrip : leftOfStrip;
 
         var top = RingCentreY - ActualHeight / 2;
@@ -126,15 +123,5 @@ public partial class DetailCardWindow : Window
 
         Left = left;
         Top = top;
-
-        if (tailOnRight != _tailOnRight || Scroller.Margin == default)
-        {
-            _tailOnRight = tailOnRight;
-            Scroller.Margin = tailOnRight
-                ? new Thickness(0, 0, PanelMetrics.CardTailWidth, 0)
-                : new Thickness(PanelMetrics.CardTailWidth, 0, 0, 0);
-        }
-
-        Bubble.Data = DetailBubble.Build(ActualWidth, ActualHeight, RingCentreY - top, _tailOnRight);
     }
 }

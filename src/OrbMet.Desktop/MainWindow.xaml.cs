@@ -108,21 +108,19 @@ public partial class MainWindow : Window
         Top = y;
     }
 
-    /// <summary>Gives the strip the size, padding and outline of a dock state.</summary>
+    /// <summary>
+    /// Sizes the capsule for the slots and records which side it is on. The
+    /// shape is the same docked or floating (design.md 4.2).
+    /// </summary>
     private void ShowDock(PanelDock dock)
     {
         // Each slot carries 15 DIP of margin above it, so the list's own
         // margin is the end padding less that.
         const double SlotMargin = 15;
-        var docked = dock != PanelDock.Floating;
-        var padding = docked ? PanelMetrics.DockedEndPadding : PanelMetrics.FloatingEndPadding;
 
-        Slots.Margin = new Thickness(0, padding - SlotMargin, 0, 0);
+        Slots.Margin = new Thickness(0, PanelMetrics.EndPadding - SlotMargin, 0, 0);
         Width = PanelMetrics.StripWidth;
-        Height = PanelMetrics.RailHeight(SlotCount, docked);
-        Berth.Data = docked
-            ? DockBerth.Build(Width, Height, dockedRight: dock == PanelDock.Right)
-            : DockBerth.Floating(Width, Height);
+        Height = PanelMetrics.RailHeight(SlotCount);
         _shownDock = dock;
     }
 
@@ -181,28 +179,13 @@ public partial class MainWindow : Window
         var (area, displayId) = Displays.At(pointer, this);
         var wanted = pointer - _grab;
         var dock = PanelLayout.DockFor(wanted.X, Width, area);
-
-        // Docked and floating strips differ in length; keep the grabbed spot
-        // under the pointer by moving the grab with the change.
-        var landingHeight = PanelMetrics.RailHeight(SlotCount, dock != PanelDock.Floating);
-        if (landingHeight != Height)
-        {
-            _grab.Y -= (Height - landingHeight) / 2;
-            wanted = pointer - _grab;
-        }
-
-        if (dock != _shownDock)
-        {
-            ShowDock(dock);
-        }
+        _shownDock = dock;
 
         var (x, y) = PanelLayout.Clamp(wanted.X, wanted.Y, area, Width, Height);
-        x = dock switch
+        if (dock != PanelDock.Floating)
         {
-            PanelDock.Left => area.X,
-            PanelDock.Right => area.Right - Width,
-            _ => x,
-        };
+            x = PanelLayout.DockedX(dock, area, Width);
+        }
 
         Left = x;
         Top = y;

@@ -10,6 +10,7 @@
         <SolidColorBrush x:Key="TextReset" Color="#73FFFFFF" />
         <SolidColorBrush x:Key="TextFootnote" Color="#66FFFFFF" />
         <SolidColorBrush x:Key="Spent" Color="#D9171F" />
+        <controls:UsageBrushConverter x:Key="UsageBrush" />
 
         <!-- A thin white ring; the system's dotted black one vanishes on black. -->
         <Style x:Key="FocusRing">
@@ -45,22 +46,41 @@
 
     <StackPanel>
 
-        <!-- 1. Logo and title -->
-        <StackPanel Orientation="Horizontal"
-                    Style="{StaticResource Reachable}"
-                    AutomationProperties.Name="{Binding CardTitle}">
+        <!-- 1. Logo and name, and the ring's percentage in its usage colour -->
+        <Grid Style="{StaticResource Reachable}"
+              AutomationProperties.Name="{Binding CardTitle}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
             <controls:ProviderMark Width="16"
                                    Height="16"
+                                   VerticalAlignment="Center"
                                    Mark="{Binding Mark}"
                                    Fill="{StaticResource Text}" />
-            <TextBlock Text="{Binding CardTitle}"
+            <TextBlock Grid.Column="1"
+                       Text="{Binding DisplayName}"
                        Foreground="{StaticResource Text}"
                        FontSize="14"
                        FontWeight="SemiBold"
-                       Margin="8,0,0,0"
+                       Margin="8,0,8,0"
                        VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis" />
-        </StackPanel>
+            <TextBlock Grid.Column="2"
+                       Text="{Binding PercentText}"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center"
+                       Typography.NumeralAlignment="Tabular">
+                <TextBlock.Foreground>
+                    <MultiBinding Converter="{StaticResource UsageBrush}">
+                        <Binding Path="RingPercent" />
+                        <Binding Path="IsExhausted" />
+                    </MultiBinding>
+                </TextBlock.Foreground>
+            </TextBlock>
+        </Grid>
 
         <!-- 2. One row per reported window -->
         <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
