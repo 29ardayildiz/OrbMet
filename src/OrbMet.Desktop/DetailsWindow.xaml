@@ -2,19 +2,17 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:OrbMet.Desktop.Controls"
-        Title="OrbMet ayrıntılar"
+        xmlns:infra="clr-namespace:OrbMet.Desktop.Infrastructure"
+        Title="OrbMet Ayrıntılar"
+        infra:OrbMetFrame.Caption="Ayrıntılar"
+        Style="{StaticResource OrbMetWindow}"
         Width="320"
         SizeToContent="Height"
-        ResizeMode="CanMinimize"
-        WindowStartupLocation="CenterScreen"
-        Background="Black"
-        FontFamily="Segoe UI Variable Text, Segoe UI"
-        TextOptions.TextFormattingMode="Display"
         PreviewKeyDown="OnPreviewKeyDown">
     <!-- The keyboard path to the hover card's content (design.md 10): it takes
          focus, Tab walks the rows, Escape closes. -->
     <ItemsControl x:Name="Providers"
-                  Margin="18,18,18,4"
+                  Margin="18,6,18,4"
                   Focusable="False"
                   KeyboardNavigation.TabNavigation="Cycle">
         <ItemsControl.ItemTemplate>

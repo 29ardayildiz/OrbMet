@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Input;
 using OrbMet.Core.Providers.Claude;
 using OrbMet.Core.Storage;
 using OrbMet.Desktop.Infrastructure;
@@ -18,6 +19,7 @@ public partial class ConnectionsWindow : Window
     public ConnectionsWindow(ProviderSlotViewModel claude, ProviderSlotViewModel codex)
     {
         InitializeComponent();
+        OrbMetFrame.Attach(this);
         _viewModel = BuildViewModel(() => claude.IsReceiving);
         DataContext = _viewModel;
         ClaudePlan.DataContext = claude;
@@ -33,6 +35,15 @@ public partial class ConnectionsWindow : Window
         claude.PropertyChanged += onClaudeChanged;
         Closed += (_, _) => claude.PropertyChanged -= onClaudeChanged;
         Loaded += async (_, _) => await _viewModel.RefreshAsync();
+    }
+
+    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            Close();
+            e.Handled = true;
+        }
     }
 
     private static ConnectionsViewModel BuildViewModel(Func<bool> isReceiving)

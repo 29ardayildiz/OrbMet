@@ -19,7 +19,6 @@ public sealed class ConnectionsViewModel : ObservableObject
 
     private string _statusText = "Bağlantı kontrol ediliyor…";
     private string _detailText = string.Empty;
-    private string _buttonText = "Bağla";
     private bool _canToggle;
     private bool _isBusy;
     private bool _connected;
@@ -40,9 +39,11 @@ public sealed class ConnectionsViewModel : ObservableObject
 
     public RelayCommand ToggleCommand { get; }
 
-    public string SettingsPathText => _settingsPath ?? "Claude ayarları bulunamadı";
-
-    public string CapturePathText => _captureExecutablePath ?? "Capture yardımcısı bulunamadı";
+    /// <summary>
+    /// The one file Connect changes, with the profile folder as "~"; the
+    /// window shows no other path (design.md 12).
+    /// </summary>
+    public string? SettingsFootnote => _settingsPath is null ? null : "Değişen ayar: " + ShortPath(_settingsPath);
 
     public string StatusText
     {
@@ -56,10 +57,11 @@ public sealed class ConnectionsViewModel : ObservableObject
         private set => SetProperty(ref _detailText, value);
     }
 
-    public string ButtonText
+    /// <summary>Whether the button offers Ayır rather than Bağla.</summary>
+    public bool IsConnected
     {
-        get => _buttonText;
-        private set => SetProperty(ref _buttonText, value);
+        get => _connected;
+        private set => SetProperty(ref _connected, value);
     }
 
     public bool CanToggle
@@ -91,7 +93,6 @@ public sealed class ConnectionsViewModel : ObservableObject
                 helperMissing
                     ? "Capture yardımcısı uygulamanın yanında bulunamadı."
                     : "Kullanıcı profilindeki Claude ayar yolu çözülemedi.",
-                "Bağla",
                 canToggle: false,
                 connected: false);
             return;
@@ -104,7 +105,6 @@ public sealed class ConnectionsViewModel : ObservableObject
             SetState(
                 "Claude ayarları okunamadı",
                 "Dosya değiştirilmedi. Ayarlar geçerli JSON olmadan OrbMet yazmaz.",
-                "Bağla",
                 canToggle: true,
                 connected: false);
             return;
@@ -119,7 +119,6 @@ public sealed class ConnectionsViewModel : ObservableObject
             SetState(
                 "Bağlı değil",
                 "Bağla, Claude Code'un status line'ını OrbMet'e yönlendirir. Mevcut status line ve diğer ayarlar korunur.",
-                "Bağla",
                 canToggle: true,
                 connected: false);
         }
@@ -134,7 +133,7 @@ public sealed class ConnectionsViewModel : ObservableObject
             return;
         }
 
-        var wasConnected = _connected;
+        var wasConnected = IsConnected;
         IsBusy = true;
         CanToggle = false;
 
@@ -151,7 +150,6 @@ public sealed class ConnectionsViewModel : ObservableObject
             SetState(
                 "Beklenmeyen hata",
                 "İşlem tamamlanamadı; dosya değiştirilmedi.",
-                wasConnected ? "Ayır" : "Bağla",
                 canToggle: true,
                 connected: wasConnected);
             return;
@@ -173,7 +171,6 @@ public sealed class ConnectionsViewModel : ObservableObject
                 SetState(
                     "Bağlantı kaldırıldı",
                     "Önceki status line geri yüklendi.",
-                    "Bağla",
                     canToggle: true,
                     connected: false);
                 break;
@@ -184,20 +181,18 @@ public sealed class ConnectionsViewModel : ObservableObject
                     wasConnected
                         ? "Status line'ı siz değiştirdiniz; OrbMet dokunmadı."
                         : "Dosya siz düzenlerken değişti; tekrar deneyin.",
-                    wasConnected ? "Ayır" : "Bağla",
                     canToggle: true,
                     connected: wasConnected);
                 break;
 
             case ClaudeIntegrationStatus.NotConnected:
-                SetState("Bağlı değil", string.Empty, "Bağla", canToggle: true, connected: false);
+                SetState("Bağlı değil", string.Empty, canToggle: true, connected: false);
                 break;
 
             default:
                 SetState(
                     "Claude ayarları okunamadı",
                     "Dosya değiştirilmedi.",
-                    wasConnected ? "Ayır" : "Bağla",
                     canToggle: true,
                     connected: wasConnected);
                 break;
@@ -222,17 +217,24 @@ public sealed class ConnectionsViewModel : ObservableObject
 
     private void SetConnected(string status)
     {
-        SetState(status, ConnectedDetail, "Ayır", canToggle: true, connected: true);
+        SetState(status, ConnectedDetail, canToggle: true, connected: true);
         _showsConnectedDetail = true;
     }
 
-    private void SetState(string status, string detail, string button, bool canToggle, bool connected)
+    private void SetState(string status, string detail, bool canToggle, bool connected)
     {
         _showsConnectedDetail = false;
         StatusText = status;
         DetailText = detail;
-        ButtonText = button;
         CanToggle = canToggle;
-        _connected = connected;
+        IsConnected = connected;
+    }
+
+    private static string ShortPath(string path)
+    {
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return profile.Length > 0 && path.StartsWith(profile + System.IO.Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            ? "~" + path[profile.Length..]
+            : path;
     }
 }

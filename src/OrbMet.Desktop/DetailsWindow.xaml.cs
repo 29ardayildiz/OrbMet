@@ -28,7 +28,7 @@ public partial class DetailsWindow : Window
         _clock.Tick += (_, _) => UpdateDetails();
         Closed += (_, _) => _clock.Stop();
 
-        SourceInitialized += (_, _) => DarkTitleBar.Apply(this);
+        OrbMetFrame.Attach(this);
         Loaded += (_, _) =>
         {
             UpdateDetails();
