@@ -21,12 +21,39 @@ public static class PanelMetrics
     /// <summary>A small move before a press counts as a drag, so a click stays a click.</summary>
     public const double DragThreshold = 3;
 
-    /// <summary>The strip's length for a number of slots; docked and floating are the same capsule.</summary>
+    /// <summary>The vertical capsule's length for a number of slots (sides and floating).</summary>
     public static double RailHeight(int slots)
     {
         var count = Math.Max(slots, 0);
         return 2 * EndPadding + count * SlotHeight + Math.Max(count - 1, 0) * SlotSpacing;
     }
+
+    /// <summary>
+    /// Along the top or bottom, and on the L's horizontal arm, the percentage
+    /// sits beside the ring: ring, 6 DIP, room for "%100".
+    /// </summary>
+    public const double BesideSlotWidth = RingDiameter + RingToText + 34;
+
+    /// <summary>
+    /// From each end of the horizontal capsule to its nearest ring: the ring
+    /// then sits concentric with the capsule's rounded end.
+    /// </summary>
+    public const double BesideEndPadding = (StripWidth - RingDiameter) / 2;
+
+    public const double BesideSlotSpacing = 22;
+
+    /// <summary>The horizontal capsule's length for a number of slots (top and bottom).</summary>
+    public static double RailLength(int slots)
+    {
+        var count = Math.Max(slots, 0);
+        return 2 * BesideEndPadding + count * BesideSlotWidth + Math.Max(count - 1, 0) * BesideSlotSpacing;
+    }
+
+    /// <summary>In the L, between each arm's slot and the corner block.</summary>
+    public const double CornerArmGap = 10;
+
+    /// <summary>The soft concave corner where the L's arms meet.</summary>
+    public const double CornerInnerRadius = 18;
 
     /// <summary>Gap between the ring and the logo's backing disc, and the logo's share of that disc.</summary>
     public const double RingCentreGap = 4;

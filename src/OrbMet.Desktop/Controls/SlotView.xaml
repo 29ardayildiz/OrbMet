@@ -1,0 +1,48 @@
+<UserControl x:Class="OrbMet.Desktop.Controls.SlotView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:OrbMet.Desktop.Controls"
+             xmlns:infra="clr-namespace:OrbMet.Desktop.Infrastructure"
+             Background="Transparent"
+             AutomationProperties.Name="{Binding AccessibleText}">
+    <!-- One provider on the strip: its ring and percentage. The percentage
+         sits under the ring on a vertical strip and beside it on a horizontal
+         one; SlotView.PercentBeside moves it. -->
+    <Grid>
+        <controls:UsageRing x:Name="Ring"
+                            Width="{x:Static infra:PanelMetrics.RingDiameter}"
+                            Height="{x:Static infra:PanelMetrics.RingDiameter}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Percent="{Binding RingPercent}"
+                            IsExhausted="{Binding IsExhausted}"
+                            IsSelected="{Binding IsSelected}"
+                            IsRefreshing="{Binding IsRefreshing}"
+                            Mark="{Binding Mark}" />
+        <TextBlock x:Name="Percent"
+                   Text="{Binding PercentText}"
+                   Height="{x:Static infra:PanelMetrics.PercentHeight}"
+                   FontSize="13"
+                   FontWeight="Medium"
+                   Typography.NumeralAlignment="Tabular"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Top">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="White" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasReading}" Value="False">
+                            <Setter Property="Foreground" Value="#66FFFFFF" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsSpent}" Value="True">
+                            <Setter Property="Foreground" Value="#D9171F" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsRefreshing}" Value="True">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+    </Grid>
+</UserControl>

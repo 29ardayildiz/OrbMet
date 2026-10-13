@@ -30,6 +30,8 @@ public partial class MainWindow : Window
     private readonly PanelPositionStore _positionStore;
     private PanelPosition _position;
     private PanelDock _shownDock;
+    private PanelPlan? _plan;
+    private readonly List<SlotView> _slotViews = new();
     private ConnectionsWindow? _connectionsWindow;
     private DetailsWindow? _detailsWindow;
 
@@ -60,6 +62,16 @@ public partial class MainWindow : Window
 
         _viewModel = new PanelViewModel(coordinator);
         DataContext = _viewModel;
+
+        foreach (var slot in _viewModel.Providers)
+        {
+            var view = new SlotView { DataContext = slot };
+            view.RingElement.MouseEnter += OnRingMouseEnter;
+            _slotViews.Add(view);
+            SlotLayer.Children.Add(view);
+        }
+
+        ShowDock(_shownDock);
 
         _tray = new TrayIcon(
             togglePanel: TogglePanel,
@@ -109,18 +121,28 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Sizes the capsule for the slots and records which side it is on. The
-    /// shape is the same docked or floating (design.md 4.2).
+    /// Draws the strip for a dock (design.md 4.2): its size, outline and where
+    /// each provider sits.
     /// </summary>
     private void ShowDock(PanelDock dock)
     {
-        // Each slot carries 15 DIP of margin above it, so the list's own
-        // margin is the end padding less that.
-        const double SlotMargin = 15;
+        var plan = PanelOutline.For(dock, SlotCount);
+        Width = plan.Size.Width;
+        Height = plan.Size.Height;
+        Outline.Data = plan.Outline;
 
-        Slots.Margin = new Thickness(0, PanelMetrics.EndPadding - SlotMargin, 0, 0);
-        Width = PanelMetrics.StripWidth;
-        Height = PanelMetrics.RailHeight(SlotCount);
+        for (var i = 0; i < _slotViews.Count && i < plan.Slots.Count; i++)
+        {
+            var (bounds, beside) = (plan.Slots[i].Bounds, plan.Slots[i].PercentBeside);
+            var view = _slotViews[i];
+            System.Windows.Controls.Canvas.SetLeft(view, bounds.X);
+            System.Windows.Controls.Canvas.SetTop(view, bounds.Y);
+            view.Width = bounds.Width;
+            view.Height = bounds.Height;
+            view.PercentBeside = beside;
+        }
+
+        _plan = plan;
         _shownDock = dock;
     }
 
@@ -155,8 +177,9 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Carries the strip under the pointer, fusing it to a side within the
-    /// dock distance while it moves, on whichever display the pointer is over.
+    /// Carries the strip under the pointer on whichever display it is over,
+    /// fusing it to an edge or corner the pointer reaches while it moves and
+    /// redrawing it as a capsule or an L to suit (design.md 4.2, 8.2).
     /// </summary>
     private void OnPointerMove(object sender, MouseEventArgs e)
     {
@@ -177,20 +200,27 @@ public partial class MainWindow : Window
         }
 
         var (area, displayId) = Displays.At(pointer, this);
-        var wanted = pointer - _grab;
-        var dock = PanelLayout.DockFor(wanted.X, Width, area);
-        _shownDock = dock;
-
-        var (x, y) = PanelLayout.Clamp(wanted.X, wanted.Y, area, Width, Height);
-        if (dock != PanelDock.Floating)
+        var dock = PanelLayout.DockFor(pointer.X, pointer.Y, area);
+        if (dock != _shownDock)
         {
-            x = PanelLayout.DockedX(dock, area, Width);
+            var before = new Size(Width, Height);
+            ShowDock(dock);
+
+            // A new outline has nothing in common with where the old one was
+            // held, so it is carried by its middle from here on.
+            if (before != new Size(Width, Height))
+            {
+                _grab = new Vector(Width / 2, Height / 2);
+            }
         }
+
+        var wanted = pointer - _grab;
+        var (x, y) = PanelLayout.DragOrigin(dock, wanted.X, wanted.Y, area, Width, Height);
 
         Left = x;
         Top = y;
 
-        var (horizontal, vertical) = PanelLayout.Ratios(x, y, area, Width, Height);
+        var (horizontal, vertical) = PanelLayout.Ratios(dock, x, y, area, Width, Height);
         _dragPosition = new PanelPosition(dock, horizontal, vertical, displayId);
     }
 
@@ -294,20 +324,67 @@ public partial class MainWindow : Window
             other.IsSelected = ReferenceEquals(other, slot);
         }
 
-        var ringCentreY = Top + ring.TranslatePoint(new Point(0, ring.ActualHeight / 2), this).Y;
+        var centre = ring.TranslatePoint(new Point(ring.ActualWidth / 2, ring.ActualHeight / 2), this);
+        var ringCentre = new Point(Left + centre.X, Top + centre.Y);
         var strip = new Rect(Left, Top, Width, Height);
         var (area, _) = Displays.At(new Point(strip.X + strip.Width / 2, strip.Y + strip.Height / 2), this);
+        var bounds = new Rect(area.X, area.Y, area.Width, area.Height);
 
-        // The card opens away from the edge the strip sits on; floating, away
-        // from the nearer side of the display.
-        var opensRight = _shownDock switch
+        var plan = _plan ?? PanelOutline.For(_shownDock, SlotCount);
+        var index = _viewModel.Providers.IndexOf(slot);
+        var onHorizontalArm = index >= 0 && index < plan.Slots.Count && plan.Slots[index].PercentBeside;
+        var arm = onHorizontalArm ? plan.HorizontalArm : plan.VerticalArm;
+        arm.Offset(Left, Top);
+
+        // The card opens into the screen, away from the edges the strip is on.
+        var dock = _shownDock;
+        CardSide side;
+        if (onHorizontalArm)
         {
-            PanelDock.Left => true,
-            PanelDock.Right => false,
-            _ => strip.X + strip.Width / 2 < area.CenterX,
-        };
-        _card.ShowFor(slot, strip, ringCentreY, new Rect(area.X, area.Y, area.Width, area.Height), opensRight);
+            side = PanelLayout.IsBottom(dock) ? CardSide.Above : CardSide.Below;
+        }
+        else if (PanelLayout.IsLeft(dock))
+        {
+            side = CardSide.Right;
+        }
+        else if (PanelLayout.IsRight(dock))
+        {
+            side = CardSide.Left;
+        }
+        else
+        {
+            side = strip.X + strip.Width / 2 < area.CenterX ? CardSide.Right : CardSide.Left;
+        }
+
+        // In a corner the card also keeps clear of the L's other arm.
+        if (PanelLayout.ShapeOf(dock) == PanelShape.Corner)
+        {
+            var other = onHorizontalArm ? plan.VerticalArm : plan.HorizontalArm;
+            other.Offset(Left, Top);
+            bounds = Clear(bounds, other, onHorizontalArm);
+        }
+
+        _card.ShowFor(slot, ringCentre, arm, bounds, side);
         _pointerSampler.Start();
+    }
+
+    /// <summary>
+    /// The part of <paramref name="bounds"/> beside <paramref name="obstacle"/>:
+    /// left or right of it when <paramref name="sideways"/>, above or below otherwise.
+    /// </summary>
+    private static Rect Clear(Rect bounds, Rect obstacle, bool sideways)
+    {
+        var gap = PanelMetrics.CardGap;
+        if (sideways)
+        {
+            return obstacle.Left > bounds.Left + bounds.Width / 2
+                ? new Rect(bounds.Left, bounds.Top, Math.Max(obstacle.Left - gap - bounds.Left, 0), bounds.Height)
+                : new Rect(obstacle.Right + gap, bounds.Top, Math.Max(bounds.Right - obstacle.Right - gap, 0), bounds.Height);
+        }
+
+        return obstacle.Top < bounds.Top + bounds.Height / 2
+            ? new Rect(bounds.Left, obstacle.Bottom + gap, bounds.Width, Math.Max(bounds.Bottom - obstacle.Bottom - gap, 0))
+            : new Rect(bounds.Left, bounds.Top, bounds.Width, Math.Max(obstacle.Top - gap - bounds.Top, 0));
     }
 
     private void SamplePointer()
@@ -318,13 +395,15 @@ public partial class MainWindow : Window
             return;
         }
 
-        var strip = new Rect(Left, Top, ActualWidth, ActualHeight);
+        // The strip is its drawn outline, not its window: the empty quarter
+        // of an L's box is the desktop.
+        var onStrip = _plan?.Outline.FillContains(new Point(pointer.X - Left, pointer.Y - Top)) ?? false;
 
         // The card's rect is widened over the gap so crossing it never closes the card.
         var card = new Rect(_card.Left, _card.Top, _card.ActualWidth, _card.ActualHeight);
-        card.Inflate(PanelMetrics.CardGap, 0);
+        card.Inflate(PanelMetrics.CardGap, PanelMetrics.CardGap);
 
-        if (!strip.Contains(pointer) && !card.Contains(pointer))
+        if (!onStrip && !card.Contains(pointer))
         {
             HideCard();
         }

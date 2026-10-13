@@ -19,13 +19,36 @@ public class PanelPlacementTests
     }
 
     [Fact]
-    public void DockedSidesStandTheInsetOffTheEdge()
+    public void DockedSidesStandTheInsetOffEveryEdge()
     {
         var left = new PanelPosition(PanelDock.Left, 0.7, 0, null);
         var right = new PanelPosition(PanelDock.Right, 0.2, 1, null);
 
-        Assert.Equal((PanelLayout.EdgeInset, 0), PanelLayout.RailOrigin(left, Area, Width, Height));
-        Assert.Equal((1920 - 64 - PanelLayout.EdgeInset, 1032 - 190), PanelLayout.RailOrigin(right, Area, Width, Height));
+        Assert.Equal((8, 8), PanelLayout.RailOrigin(left, Area, Width, Height));
+        Assert.Equal((1920 - 64 - 8, 1032 - 190 - 8), PanelLayout.RailOrigin(right, Area, Width, Height));
+    }
+
+    [Fact]
+    public void TopAndBottomSlideAlongTheEdge()
+    {
+        const double length = 202;
+        var top = new PanelPosition(PanelDock.Top, 0.5, 0.9, null);
+        var bottom = new PanelPosition(PanelDock.Bottom, 0, 0.1, null);
+
+        Assert.Equal((8 + (1920 - length - 16) / 2, 8), PanelLayout.RailOrigin(top, Area, length, Width));
+        Assert.Equal((8, 1032 - 64 - 8), PanelLayout.RailOrigin(bottom, Area, length, Width));
+    }
+
+    [Theory]
+    [InlineData(PanelDock.TopLeft, 8, 8)]
+    [InlineData(PanelDock.TopRight, 1920 - 164 - 8, 8)]
+    [InlineData(PanelDock.BottomLeft, 8, 1032 - 152 - 8)]
+    [InlineData(PanelDock.BottomRight, 1920 - 164 - 8, 1032 - 152 - 8)]
+    public void CornersSitTheInsetOffBothEdgesWhateverTheRatios(PanelDock corner, double x, double y)
+    {
+        var position = new PanelPosition(corner, 0.3, 0.6, null);
+
+        Assert.Equal((x, y), PanelLayout.RailOrigin(position, Area, 164, 152));
     }
 
     [Fact]
@@ -35,6 +58,7 @@ public class PanelPlacementTests
 
         Assert.Equal(-1920 + 8, PanelLayout.DockedX(PanelDock.Left, area, Width));
         Assert.Equal(-64 - 8, PanelLayout.DockedX(PanelDock.Right, area, Width));
+        Assert.Equal(-64 - 8, PanelLayout.DockedX(PanelDock.BottomRight, area, Width));
     }
 
     [Fact]
@@ -48,42 +72,62 @@ public class PanelPlacementTests
     }
 
     [Theory]
-    [InlineData(0, PanelDock.Left)]
-    [InlineData(32, PanelDock.Left)]
-    [InlineData(33, PanelDock.Floating)]
-    [InlineData(900, PanelDock.Floating)]
-    [InlineData(1920 - 64 - 33, PanelDock.Floating)]
-    [InlineData(1920 - 64 - 32, PanelDock.Right)]
-    [InlineData(1856, PanelDock.Right)]
-    public void FusesToASideWithinTheDockDistance(double wantedX, PanelDock expected)
+    [InlineData(960, 500, PanelDock.Floating)]
+    [InlineData(96, 500, PanelDock.Left)]
+    [InlineData(97, 500, PanelDock.Floating)]
+    [InlineData(1920 - 96, 500, PanelDock.Right)]
+    [InlineData(1920 - 97, 500, PanelDock.Floating)]
+    [InlineData(960, 96, PanelDock.Top)]
+    [InlineData(960, 1032 - 96, PanelDock.Bottom)]
+    [InlineData(40, 40, PanelDock.TopLeft)]
+    [InlineData(1900, 20, PanelDock.TopRight)]
+    [InlineData(10, 1020, PanelDock.BottomLeft)]
+    [InlineData(1880, 1000, PanelDock.BottomRight)]
+    public void FusesToTheEdgeOrCornerThePointerReaches(double x, double y, PanelDock expected)
     {
-        Assert.Equal(expected, PanelLayout.DockFor(wantedX, Width, Area));
+        Assert.Equal(expected, PanelLayout.DockFor(x, y, Area));
     }
 
     [Fact]
-    public void RatiosRoundTripThroughThePlacement()
+    public void ReachIsMeasuredOnTheDisplayUnderThePointer()
+    {
+        var left = new Box(-1920, 0, 1920, 1032);
+
+        Assert.Equal(PanelDock.Right, PanelLayout.DockFor(-40, 500, left));
+        Assert.Equal(PanelDock.BottomLeft, PanelLayout.DockFor(-1900, 1000, left));
+    }
+
+    [Theory]
+    [InlineData(PanelDock.Floating)]
+    [InlineData(PanelDock.Left)]
+    [InlineData(PanelDock.Top)]
+    public void RatiosRoundTripThroughThePlacement(PanelDock dock)
     {
         var area = new Box(-1280, 40, 1280, 984);
-        var (h, v) = PanelLayout.Ratios(-900, 300, area, Width, Height);
-        var position = new PanelPosition(PanelDock.Floating, h, v, "DISPLAY2");
+        var (w, h) = dock == PanelDock.Top ? (202.0, 64.0) : (Width, Height);
+        var (x, y) = PanelLayout.DragOrigin(dock, -900, 300, area, w, h);
+        var (horizontal, vertical) = PanelLayout.Ratios(dock, x, y, area, w, h);
 
-        var (x, y) = PanelLayout.RailOrigin(position, area, Width, Height);
+        var restored = PanelLayout.RailOrigin(new PanelPosition(dock, horizontal, vertical, "DISPLAY2"), area, w, h);
 
-        Assert.Equal(-900, x, 6);
-        Assert.Equal(300, y, 6);
+        Assert.Equal(x, restored.X, 6);
+        Assert.Equal(y, restored.Y, 6);
+    }
+
+    [Fact]
+    public void DraggingAlongASideKeepsItsInsetAtTheEnds()
+    {
+        Assert.Equal((1920 - 64 - 8, 8), PanelLayout.DragOrigin(PanelDock.Right, 1500, -300, Area, Width, Height));
+        Assert.Equal((8, 1032 - 64 - 8), PanelLayout.DragOrigin(PanelDock.Bottom, -50, 900, Area, 202, 64));
     }
 
     [Fact]
     public void ARatioKeepsItsPlaceOnALargerDisplay()
     {
-        var small = new Box(0, 0, 1280, 680);
-        var large = new Box(0, 0, 2560, 1400);
-        var (_, v) = PanelLayout.Ratios(0, 0, small, Width, Height);
-
         var bottom = new PanelPosition(PanelDock.Left, 0, 1, null);
+        var large = new Box(0, 0, 2560, 1400);
 
-        Assert.Equal(0, v);
-        Assert.Equal(1400 - Height, PanelLayout.RailOrigin(bottom, large, Width, Height).Y);
+        Assert.Equal(1400 - Height - 8, PanelLayout.RailOrigin(bottom, large, Width, Height).Y);
     }
 
     [Fact]
@@ -99,6 +143,15 @@ public class PanelPlacementTests
     {
         Assert.Equal((0, 0), PanelLayout.Clamp(-50, -50, Area, Width, Height));
         Assert.Equal((1856, 1032 - 190), PanelLayout.Clamp(5000, 5000, Area, Width, Height));
+    }
+
+    [Fact]
+    public void ShapesFollowTheDock()
+    {
+        Assert.Equal(PanelShape.Vertical, PanelLayout.ShapeOf(PanelDock.Floating));
+        Assert.Equal(PanelShape.Vertical, PanelLayout.ShapeOf(PanelDock.Left));
+        Assert.Equal(PanelShape.Horizontal, PanelLayout.ShapeOf(PanelDock.Bottom));
+        Assert.Equal(PanelShape.Corner, PanelLayout.ShapeOf(PanelDock.TopRight));
     }
 
     [Fact]
@@ -124,7 +177,7 @@ public class PanelPlacementTests
         File.WriteAllText(path, "{ not json");
         Assert.Equal(PanelPosition.Default, store.Load());
 
-        File.WriteAllText(path, """{ "Dock": 7, "HorizontalRatio": 0, "VerticalRatio": 0 }""");
+        File.WriteAllText(path, """{ "Dock": 42, "HorizontalRatio": 0, "VerticalRatio": 0 }""");
         Assert.Equal(PanelPosition.Default, store.Load());
     }
 }

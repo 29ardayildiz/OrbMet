@@ -3,11 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:controls="clr-namespace:OrbMet.Desktop.Controls"
-        xmlns:infra="clr-namespace:OrbMet.Desktop.Infrastructure"
         mc:Ignorable="d"
         Title="OrbMet"
-        Width="{x:Static infra:PanelMetrics.StripWidth}"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -43,60 +40,11 @@
             </ContextMenu>
         </Grid.ContextMenu>
 
-        <!-- One capsule, docked or floating (design.md 4.2). -->
-        <Border Background="Black" CornerRadius="32" />
+        <!-- The outline for the current dock: a capsule, or an L in a corner
+             (design.md 4.2). Set in code with the slots' frames. -->
+        <Path x:Name="Outline" Fill="Black" />
 
-        <!-- Margin + each slot's 15 is the end padding (set in code: 22);
-             15 + 15 is the 30 DIP gap between slots. -->
-        <ItemsControl x:Name="Slots" ItemsSource="{Binding Providers}" Margin="0,31">
-            <!-- UI Automation sees each slot through its container, which would
-                 otherwise be named after the view model's type. -->
-            <ItemsControl.ItemContainerStyle>
-                <Style TargetType="ContentPresenter">
-                    <Setter Property="AutomationProperties.Name" Value="{Binding AccessibleText}" />
-                </Style>
-            </ItemsControl.ItemContainerStyle>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Height="{x:Static infra:PanelMetrics.SlotHeight}"
-                                Margin="0,15"
-                                Background="Transparent">
-                        <controls:UsageRing Width="{x:Static infra:PanelMetrics.RingDiameter}"
-                                            Height="{x:Static infra:PanelMetrics.RingDiameter}"
-                                            HorizontalAlignment="Center"
-                                            Percent="{Binding RingPercent}"
-                                            IsExhausted="{Binding IsExhausted}"
-                                            IsSelected="{Binding IsSelected}"
-                                            IsRefreshing="{Binding IsRefreshing}"
-                                            Mark="{Binding Mark}"
-                                            MouseEnter="OnRingMouseEnter" />
-                        <TextBlock Text="{Binding PercentText}"
-                                   Height="{x:Static infra:PanelMetrics.PercentHeight}"
-                                   Margin="0,6,0,0"
-                                   FontSize="13"
-                                   FontWeight="Medium"
-                                   Typography.NumeralAlignment="Tabular"
-                                   HorizontalAlignment="Center">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="White" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HasReading}" Value="False">
-                                            <Setter Property="Foreground" Value="#66FFFFFF" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsSpent}" Value="True">
-                                            <Setter Property="Foreground" Value="#D9171F" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsRefreshing}" Value="True">
-                                            <Setter Property="Opacity" Value="0.4" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </StackPanel>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <!-- One SlotView per provider, positioned from the outline's plan. -->
+        <Canvas x:Name="SlotLayer" />
     </Grid>
 </Window>
