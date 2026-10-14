@@ -39,6 +39,7 @@ internal sealed class TrayIcon : IDisposable
         _menu.Items.Add(Item("Refresh", "\uE72C", refresh));
         _menu.Items.Add(Item("Connections", "\uE71B", openConnections));
         _menu.Items.Add(LanguageMenu.Create());
+        _menu.Items.Add(StartupMenu.Create());
         _menu.Items.Add(new WpfSeparator());
         _menu.Items.Add(Item("Exit", "\uE7E8", exit));
         _menu.Opened += (_, _) => TakeForeground();

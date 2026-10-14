@@ -67,6 +67,16 @@
                                            Margin="16,0,-6,0"
                                            VerticalAlignment="Center"
                                            Visibility="Collapsed" />
+                                <!-- Check Mark, on the right of a row that is on (Start with Windows). -->
+                                <TextBlock x:Name="CheckMark"
+                                           Grid.Column="2"
+                                           Text="&#xE73E;"
+                                           FontFamily="{StaticResource MenuIconFont}"
+                                           FontSize="12"
+                                           Foreground="#D9FFFFFF"
+                                           Margin="16,0,-6,0"
+                                           VerticalAlignment="Center"
+                                           Visibility="Collapsed" />
                             </Grid>
                         </Border>
                         <!-- A submenu opens to the right as its own black box. -->
@@ -94,6 +104,9 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="Role" Value="SubmenuHeader">
                             <Setter TargetName="Chevron" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsSubmenuOpen" Value="True">
                             <Setter TargetName="Row" Property="Background" Value="#1AFFFFFF" />

@@ -249,4 +249,7 @@
   <data name="CodexOwnSignIn" xml:space="preserve">
     <value>Codex'in kendi oturumu kullanılır; ayrıca bağlamak gerekmez.</value>
   </data>
+  <data name="StartWithWindows" xml:space="preserve">
+    <value>Windows açılışında başlat</value>
+  </data>
 </root>

@@ -272,4 +272,8 @@
   <data name="CodexOwnSignIn" xml:space="preserve">
     <value>Codex uses its own sign-in; there's nothing to connect.</value>
   </data>
+  <data name="StartWithWindows" xml:space="preserve">
+    <value>Start with Windows</value>
+    <comment>Menu item in the strip and tray menus; a check on the right when on.</comment>
+  </data>
 </root>
