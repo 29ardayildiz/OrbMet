@@ -5,8 +5,7 @@ namespace OrbMet.Desktop.Infrastructure;
 
 /// <summary>
 /// The panel's transitions (design.md 6.1, 8.1, 13), all short and ease-out,
-/// with no overshoot. Pulse uses springs damped to 0.84-0.86, which settle
-/// with no visible bounce, so a plain ease-out over the same time matches.
+/// with no overshoot: nothing on the panel bounces.
 /// </summary>
 internal static class Motion
 {

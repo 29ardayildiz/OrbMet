@@ -1,6 +1,8 @@
 # Third-Party Notices
 
-OrbMet bundles provider marks derived from [Lobe Icons](https://github.com/lobehub/lobe-icons), taken from the copies in [Pulse](https://github.com/qunqin24/Pulse):
+## Lobe Icons
+
+OrbMet bundles provider marks derived from [Lobe Icons](https://github.com/lobehub/lobe-icons):
 
 - `src/OrbMet.Desktop/Assets/Marks/claude.svg`
 - `src/OrbMet.Desktop/Assets/Marks/openai.svg`
@@ -37,16 +39,8 @@ does not imply endorsement.
 
 ## Pulse
 
-OrbMet's panel is inspired by [Pulse](https://github.com/qunqin24/Pulse), a
-macOS usage monitor distributed under the Apache License 2.0 (full text in
-`licenses/Pulse-LICENSE.txt`). The ring and spacing measurements, the
-usage-only colour scale and the interaction rules (instant hover, click a ring
-to refresh) follow Pulse's.
-
-Earlier OrbMet revisions contained two shapes adapted from Pulse's source:
-`DockBerth.cs` (from `DockBerthShape` in `Sources/Pulse/Panel/UsageDockView.swift`)
-and `DetailBubble.cs` (from `UsageBubbleShape` in
-`Sources/Pulse/Panel/UsageBubbleShape.swift`), both ported from SwiftUI to
-WPF. They were replaced by OrbMet's own capsule strip and tailless card and
-are no longer in the source tree; this notice and the licence copy remain for
-the revisions that include them.
+Some portions of OrbMet, including parts of the panel placement code and a
+few code comments, and in earlier revisions two drawing shapes, are adapted
+from [Pulse](https://github.com/qunqin24/Pulse), modified for Windows and
+WPF. Pulse is licensed under the Apache License 2.0; the full text is in
+`licenses/Pulse-LICENSE.txt`.

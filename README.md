@@ -107,10 +107,9 @@ This writes both zips to `artifacts\`.
 
 ## Credits
 
-- The panel is inspired by [Pulse](https://github.com/qunqin24/Pulse), a macOS
-  usage monitor. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-- Provider marks come from [Lobe Icons](https://github.com/lobehub/lobe-icons)
-  (MIT).
+Provider marks come from [Lobe Icons](https://github.com/lobehub/lobe-icons)
+(MIT). Third-party licences are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Claude and OpenAI names and marks belong to their owners. OrbMet is not
 affiliated with or endorsed by Anthropic or OpenAI.

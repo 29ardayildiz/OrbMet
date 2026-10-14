@@ -15,7 +15,7 @@ namespace OrbMet.Desktop.ViewModels;
 /// </summary>
 public sealed class PanelViewModel : ObservableObject, IDisposable
 {
-    /// <summary>Pulse holds a refresh visible this long so a local read still registers.</summary>
+    /// <summary>A refresh stays visible at least this long so even a fast local read registers.</summary>
     private static readonly TimeSpan MinimumRefreshDisplay = TimeSpan.FromMilliseconds(650);
 
     private readonly UsageCoordinator _coordinator;

@@ -2,8 +2,7 @@ namespace OrbMet.Desktop.Infrastructure;
 
 /// <summary>
 /// The panel's measurements in DIPs, kept in one place so drawing and
-/// placement never disagree. Values follow design.md sections 4 and 7; the
-/// ring and spacing come from Pulse's standard size.
+/// placement never disagree.
 /// </summary>
 public static class PanelMetrics
 {

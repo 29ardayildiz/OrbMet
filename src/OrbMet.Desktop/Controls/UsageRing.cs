@@ -19,10 +19,10 @@ public sealed class UsageRing : FrameworkElement
     private const double HaloRadius = 10;
     private const double HaloOpacity = 0.7;
 
-    // WPF's blur spreads a thin stroke much thinner than SwiftUI's shadow
-    // does, so Pulse's numbers (0.42, the arc itself) do not carry over.
-    // Measured just outside the arc: 4 DIP at 0.42 gave 2/255 of green and
-    // 10 DIP at 0.42 gave 9/255, both effectively invisible.
+    // WPF's blur spreads a thin stroke very thin, so a faint halo made from
+    // the arc itself disappears. Measured just outside the arc: 4 DIP at
+    // 0.42 gave 2/255 of green and 10 DIP at 0.42 gave 9/255, both
+    // effectively invisible.
     private const double HaloStroke = 12;
     private const double RefreshingArcOpacity = 0.3;
     private const double SatelliteDiameter = 5.2;
