@@ -241,6 +241,30 @@
     <value>Settings file: {0}</value>
     <comment>{0} is a path with the profile folder as ~.</comment>
   </data>
+  <data name="Reconnect" xml:space="preserve">
+    <value>Reconnect</value>
+    <comment>Points Claude Code at this copy's helper.</comment>
+  </data>
+  <data name="ReconnectClaude" xml:space="preserve">
+    <value>Reconnect Claude Code to this copy</value>
+    <comment>Spoken name of the button.</comment>
+  </data>
+  <data name="ConnectedElsewhere" xml:space="preserve">
+    <value>Connected to another copy</value>
+  </data>
+  <data name="ElsewhereExplained" xml:space="preserve">
+    <value>Claude Code runs the helper of an OrbMet copy in another folder. Reconnect to use this one.</value>
+  </data>
+  <data name="LinkBroken" xml:space="preserve">
+    <value>Connection broken</value>
+  </data>
+  <data name="LinkBrokenExplained" xml:space="preserve">
+    <value>Claude Code runs a helper that's no longer there, so no usage arrives. OrbMet was probably moved. Reconnect to use this copy.</value>
+  </data>
+  <data name="ClaudeLinkBroken" xml:space="preserve">
+    <value>Claude Code is set to run a helper that's no longer there. Reconnect from Connections in the right-click menu.</value>
+    <comment>The Claude card's message.</comment>
+  </data>
   <data name="CodexOwnSignIn" xml:space="preserve">
     <value>Codex uses its own sign-in; there's nothing to connect.</value>
   </data>

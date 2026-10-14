@@ -222,6 +222,27 @@
   <data name="SettingsFileFormat" xml:space="preserve">
     <value>Değişen ayar: {0}</value>
   </data>
+  <data name="Reconnect" xml:space="preserve">
+    <value>Yeniden bağla</value>
+  </data>
+  <data name="ReconnectClaude" xml:space="preserve">
+    <value>Claude Code'u bu kopyaya yeniden bağla</value>
+  </data>
+  <data name="ConnectedElsewhere" xml:space="preserve">
+    <value>Başka bir kopyaya bağlı</value>
+  </data>
+  <data name="ElsewhereExplained" xml:space="preserve">
+    <value>Claude Code, başka bir klasördeki OrbMet kopyasının yardımcısını çalıştırıyor. Bu kopyayı kullanmak için yeniden bağla.</value>
+  </data>
+  <data name="LinkBroken" xml:space="preserve">
+    <value>Bağlantı koptu</value>
+  </data>
+  <data name="LinkBrokenExplained" xml:space="preserve">
+    <value>Claude Code artık var olmayan bir yardımcıyı çalıştırıyor, bu yüzden kullanım verisi gelmiyor. OrbMet büyük ihtimalle taşındı. Bu kopyayı kullanmak için yeniden bağla.</value>
+  </data>
+  <data name="ClaudeLinkBroken" xml:space="preserve">
+    <value>Claude Code artık var olmayan bir yardımcıyı çalıştıracak şekilde ayarlı. Sağ tık menüsündeki Bağlantılar'dan yeniden bağla.</value>
+  </data>
   <data name="CodexOwnSignIn" xml:space="preserve">
     <value>Codex'in kendi oturumu kullanılır; ayrıca bağlamak gerekmez.</value>
   </data>

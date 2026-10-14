@@ -25,6 +25,7 @@ public sealed class ProviderSlotViewModel : ObservableObject
     private string? _footnote;
     private string? _planText;
     private bool _isReceiving;
+    private bool _linkBroken;
     private IReadOnlyList<UsageWindowRowViewModel> _rows = Array.Empty<UsageWindowRowViewModel>();
 
     public ProviderSlotViewModel(ProviderId providerId, string displayName, string mark)
@@ -131,6 +132,23 @@ public sealed class ProviderSlotViewModel : ObservableObject
         private set => SetProperty(ref _isReceiving, value);
     }
 
+    /// <summary>
+    /// Claude is set to run a helper that is gone (OrbMet was moved): the card
+    /// says so ahead of anything else, since no data can arrive until the user
+    /// reconnects.
+    /// </summary>
+    public bool LinkBroken
+    {
+        get => _linkBroken;
+        internal set
+        {
+            if (SetProperty(ref _linkBroken, value))
+            {
+                Rebuild();
+            }
+        }
+    }
+
     public IReadOnlyList<UsageWindowRowViewModel> Rows
     {
         get => _rows;
@@ -215,6 +233,11 @@ public sealed class ProviderSlotViewModel : ObservableObject
     private string? BuildMessage(ProviderSnapshot snapshot, DateTimeOffset nowUtc)
     {
         var words = Localizer.Instance.Text;
+        if (_linkBroken)
+        {
+            return words["ClaudeLinkBroken"];
+        }
+
         switch (snapshot.ConnectionState)
         {
             case ConnectionState.Disabled:
@@ -249,13 +272,19 @@ public sealed class ProviderSlotViewModel : ObservableObject
     private void OnLanguageChanged()
     {
         OnPropertyChanged(nameof(CardTitle));
+        Rebuild();
+    }
+
+    // Says the last reading again: in a new language, or with the link state.
+    private void Rebuild()
+    {
         if (_usage is { } usage)
         {
             Apply(usage);
         }
         else
         {
-            Message = Localizer.Instance["CheckingConnection"];
+            Message = Localizer.Instance[_linkBroken ? "ClaudeLinkBroken" : "CheckingConnection"];
         }
     }
 }

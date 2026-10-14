@@ -97,7 +97,7 @@ internal sealed class TrayIcon : IDisposable
     private static Icon LoadIcon()
     {
         var resource = System.Windows.Application.GetResourceStream(
-            new Uri("pack://application:,,,/OrbMet.Desktop;component/Assets/OrbMet.ico"));
+            new Uri("pack://application:,,,/OrbMet;component/Assets/OrbMet.ico"));
         if (resource is null)
         {
             return (Icon)SystemIcons.Application.Clone();

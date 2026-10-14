@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using OrbMet.Core.Models;
+using OrbMet.Core.Providers.Claude;
 using OrbMet.Core.Usage;
 using OrbMet.Desktop.Infrastructure;
 
@@ -18,6 +19,7 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
     private static readonly TimeSpan MinimumRefreshDisplay = TimeSpan.FromMilliseconds(650);
 
     private readonly UsageCoordinator _coordinator;
+    private readonly Func<ClaudeIntegrationState?>? _claudeLink;
     private readonly DispatcherTimer _timer;
     private readonly CancellationTokenSource _cancellation = new();
     private bool _disposed;
@@ -30,9 +32,14 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
     private DateTimeOffset? _lastChecked;
     private bool _lastReadFailed;
 
-    public PanelViewModel(UsageCoordinator coordinator)
+    /// <param name="claudeLink">
+    /// Reads Claude's status line setting, so the card can say when it runs a
+    /// helper that is gone. Read only; null when it cannot be resolved.
+    /// </param>
+    public PanelViewModel(UsageCoordinator coordinator, Func<ClaudeIntegrationState?>? claudeLink = null)
     {
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
+        _claudeLink = claudeLink;
 
         Claude = new ProviderSlotViewModel(ProviderId.ClaudeCode, "Claude Code", "claude");
         Codex = new ProviderSlotViewModel(ProviderId.Codex, "Codex", "openai");
@@ -107,6 +114,8 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
                 SlotFor(usage.Snapshot.ProviderId)?.Apply(usage);
             }
 
+            await CheckClaudeLinkAsync();
+
             _lastChecked = DateTimeOffset.Now;
             _lastReadFailed = false;
             ShowLastUpdated();
@@ -149,6 +158,11 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
             {
                 slot.Apply(usage);
             }
+
+            if (slot == Claude)
+            {
+                await CheckClaudeLinkAsync();
+            }
         }
         catch (OperationCanceledException)
         {
@@ -162,6 +176,25 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
         {
             await HoldAsync(started);
             slot.IsRefreshing = false;
+        }
+    }
+
+    /// <summary>Whether Claude runs a helper that is gone; cheap, a read of its settings file.</summary>
+    public async Task CheckClaudeLinkAsync()
+    {
+        if (_claudeLink is null || _disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            var state = await Task.Run(_claudeLink);
+            Claude.LinkBroken = state?.HelperMissing == true;
+        }
+        catch (Exception)
+        {
+            // An unreadable settings file is the Connections window's to report.
         }
     }
 

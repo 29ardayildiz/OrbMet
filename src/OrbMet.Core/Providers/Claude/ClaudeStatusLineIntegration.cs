@@ -20,11 +20,21 @@ public sealed record ClaudeIntegrationResult(
     string? Command = null);
 
 /// <summary>Current view of the connection, for the settings surface to show.</summary>
+/// <param name="PointsElsewhere">
+/// Connected, but Claude runs another OrbMet copy's helper: this folder was
+/// moved, or another copy connected last. Connecting again points it here.
+/// </param>
+/// <param name="HelperMissing">
+/// The helper Claude runs is gone, so no usage arrives until it is pointed
+/// at one that exists.
+/// </param>
 public sealed record ClaudeIntegrationState(
     bool SettingsReadable,
     bool Connected,
     string? CurrentCommand,
-    string? ErrorCode);
+    string? ErrorCode,
+    bool PointsElsewhere = false,
+    bool HelperMissing = false);
 
 /// <summary>
 /// Installs and removes OrbMet's Claude Code status line. It preserves every
@@ -120,7 +130,15 @@ public sealed class ClaudeStatusLineIntegration
                         (string.Equals(command, record.InstalledCommand, StringComparison.Ordinal) ||
                          IsOrbMetCommand(command));
 
-        return new ClaudeIntegrationState(SettingsReadable: true, Connected: connected, CurrentCommand: command, ErrorCode: null);
+        var elsewhere = connected && !string.Equals(command, BuildCommand(), StringComparison.Ordinal);
+        var missing = elsewhere && HelperPath(command) is { } helper && !File.Exists(helper);
+        return new ClaudeIntegrationState(
+            SettingsReadable: true,
+            Connected: connected,
+            CurrentCommand: command,
+            ErrorCode: null,
+            PointsElsewhere: elsewhere,
+            HelperMissing: missing);
     }
 
     public ClaudeIntegrationResult Connect()
@@ -243,6 +261,21 @@ public sealed class ClaudeStatusLineIntegration
         return string.IsNullOrWhiteSpace(_captureArguments)
             ? $"\"{executable}\""
             : $"\"{executable}\" {_captureArguments}";
+    }
+
+    /// <summary>
+    /// The executable of a command OrbMet wrote, <c>"C:/path/OrbMet.Capture.exe" --statusline</c>,
+    /// or null for any other shape, which is then not judged missing.
+    /// </summary>
+    internal static string? HelperPath(string? command)
+    {
+        if (command is not { Length: > 1 } || command[0] != '"')
+        {
+            return null;
+        }
+
+        var end = command.IndexOf('"', 1);
+        return end > 1 ? command[1..end].Replace('/', Path.DirectorySeparatorChar) : null;
     }
 
     private bool UnchangedSince(byte[]? original)

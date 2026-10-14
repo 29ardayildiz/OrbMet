@@ -68,7 +68,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Image Source="pack://application:,,,/OrbMet.Desktop;component/Assets/OrbMet.ico"
+                                <Image Source="pack://application:,,,/OrbMet;component/Assets/OrbMet.ico"
                                        Width="16"
                                        Height="16"
                                        Margin="16,0,10,0"

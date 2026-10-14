@@ -15,6 +15,23 @@ public class ClaudeStatusLineIntegrationTests
         captureExecutablePath: @"C:\OrbMet\OrbMet.Capture.exe",
         clock: () => Now);
 
+    // Another OrbMet copy: the same data and settings, its own helper path.
+    private static ClaudeStatusLineIntegration CreateAt(TempDirectory temp, string helper) => new(
+        settingsPath: temp.Combine("settings.json"),
+        integrationRecordPath: temp.Combine("data", "integrations", "claude.json"),
+        lockPath: temp.Combine("data", "integrations", "claude.lock"),
+        backupsDirectory: temp.Combine("data", "backups"),
+        captureExecutablePath: helper,
+        clock: () => Now);
+
+    private static string Helper(TempDirectory temp, string folder)
+    {
+        var path = temp.Combine(folder, "OrbMet.Capture.exe");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, string.Empty);
+        return path;
+    }
+
     private static JsonObject Settings(TempDirectory temp) =>
         (JsonObject)JsonNode.Parse(File.ReadAllText(temp.Combine("settings.json")))!;
 
@@ -173,5 +190,80 @@ public class ClaudeStatusLineIntegrationTests
         Assert.False(state.Connected);
         Assert.True(state.SettingsReadable);
         Assert.Null(state.CurrentCommand);
+    }
+
+    [Fact]
+    public void StateSaysWhenClaudeRunsAnotherCopysHelper()
+    {
+        using var temp = new TempDirectory();
+        var oldHelper = Helper(temp, "old");
+        var here = CreateAt(temp, Helper(temp, "new"));
+        CreateAt(temp, oldHelper).Connect();
+
+        var state = here.GetState();
+
+        Assert.True(state.Connected);
+        Assert.True(state.PointsElsewhere);
+        Assert.False(state.HelperMissing);
+        Assert.False(CreateAt(temp, oldHelper).GetState().PointsElsewhere);
+    }
+
+    [Fact]
+    public void StateSaysWhenTheHelperClaudeRunsIsGone()
+    {
+        using var temp = new TempDirectory();
+        var oldHelper = Helper(temp, "old");
+        CreateAt(temp, oldHelper).Connect();
+        File.Delete(oldHelper);
+
+        var state = CreateAt(temp, Helper(temp, "new")).GetState();
+
+        Assert.True(state.PointsElsewhere);
+        Assert.True(state.HelperMissing);
+    }
+
+    [Fact]
+    public void ANotConnectedStateIsNeverElsewhere()
+    {
+        using var temp = new TempDirectory();
+        WriteSettings(temp, "{\"statusLine\":{\"type\":\"command\",\"command\":\"myline.sh\"}}");
+
+        var state = CreateAt(temp, Helper(temp, "new")).GetState();
+
+        Assert.False(state.Connected);
+        Assert.False(state.PointsElsewhere);
+        Assert.False(state.HelperMissing);
+    }
+
+    [Fact]
+    public void ReconnectingFromAMovedCopyPointsHereAndStillRestoresTheOriginal()
+    {
+        using var temp = new TempDirectory();
+        WriteSettings(temp, "{\"statusLine\":{\"type\":\"command\",\"command\":\"myline.sh\",\"padding\":2}}");
+        var oldHelper = Helper(temp, "old");
+        var newHelper = Helper(temp, "new");
+        CreateAt(temp, oldHelper).Connect();
+        File.Delete(oldHelper);
+        var here = CreateAt(temp, newHelper);
+
+        Assert.Equal(ClaudeIntegrationStatus.Connected, here.Connect().Status);
+        Assert.False(here.GetState().PointsElsewhere);
+        Assert.Contains("/new/OrbMet.Capture.exe", Settings(temp)["statusLine"]!["command"]!.GetValue<string>());
+
+        Assert.Equal(ClaudeIntegrationStatus.Disconnected, here.Disconnect().Status);
+        var restored = (JsonObject)Settings(temp)["statusLine"]!;
+        Assert.Equal("myline.sh", restored["command"]!.GetValue<string>());
+        Assert.Equal(2, restored["padding"]!.GetValue<int>());
+    }
+
+    [Theory]
+    [InlineData("\"C:/OrbMet/OrbMet.Capture.exe\" --statusline", @"C:\OrbMet\OrbMet.Capture.exe")]
+    [InlineData("\"C:/My Apps/OrbMet/OrbMet.Capture.exe\"", @"C:\My Apps\OrbMet\OrbMet.Capture.exe")]
+    [InlineData("orbmet --statusline", null)]
+    [InlineData("\"\" --statusline", null)]
+    [InlineData(null, null)]
+    public void HelperPathReadsOnlyTheShapeOrbMetWrites(string? command, string? expected)
+    {
+        Assert.Equal(expected, ClaudeStatusLineIntegration.HelperPath(command));
     }
 }

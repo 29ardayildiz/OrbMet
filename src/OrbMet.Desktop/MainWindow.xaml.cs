@@ -81,7 +81,7 @@ public partial class MainWindow : Window
         _shownDock = _position.Dock;
         _reversed = _position.Reversed;
 
-        _viewModel = new PanelViewModel(coordinator);
+        _viewModel = new PanelViewModel(coordinator, () => ReadClaudeLink(paths));
         DataContext = _viewModel;
 
         foreach (var slot in _viewModel.Providers)
@@ -637,7 +637,12 @@ public partial class MainWindow : Window
         if (_connectionsWindow is null)
         {
             _connectionsWindow = new ConnectionsWindow(_viewModel.Claude, _viewModel.Codex);
-            _connectionsWindow.Closed += (_, _) => _connectionsWindow = null;
+            _connectionsWindow.Closed += (_, _) =>
+            {
+                _connectionsWindow = null;
+                // A reconnect there may have mended what the card warns about.
+                _ = _viewModel.CheckClaudeLinkAsync();
+            };
             _connectionsWindow.Show();
         }
 
@@ -658,6 +663,12 @@ public partial class MainWindow : Window
     }
 
     private void OnConnectionsClick(object sender, RoutedEventArgs e) => OpenConnections();
+
+    // Only reads Claude's settings; changing them stays the Connections window's.
+    private static ClaudeIntegrationState? ReadClaudeLink(OrbMetPaths paths) =>
+        paths.ClaudeSettingsFile is not null && CaptureHelperLocator.Locate() is { } helper
+            ? ClaudeStatusLineIntegration.FromPaths(paths, helper).GetState()
+            : null;
 
     private void OnHideClick(object sender, RoutedEventArgs e) => HidePanel();
 

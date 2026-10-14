@@ -24,6 +24,7 @@ public sealed class ConnectionsViewModel : ObservableObject, IDisposable
     private bool _canToggle;
     private bool _isBusy;
     private bool _connected;
+    private bool _needsReconnect;
     private bool _showsConnectedDetail;
 
     public ConnectionsViewModel(
@@ -37,11 +38,15 @@ public sealed class ConnectionsViewModel : ObservableObject, IDisposable
         _settingsPath = settingsPath;
         _integrationFactory = integrationFactory ?? throw new ArgumentNullException(nameof(integrationFactory));
         ToggleCommand = new RelayCommand(ToggleAsync, () => CanToggle);
+        ReconnectCommand = new RelayCommand(ReconnectAsync, () => CanToggle);
         ShowState();
         Localizer.Instance.LanguageChanged += OnLanguageChanged;
     }
 
     public RelayCommand ToggleCommand { get; }
+
+    /// <summary>Points Claude at this copy's helper when it runs another's.</summary>
+    public RelayCommand ReconnectCommand { get; }
 
     /// <summary>
     /// The one file Connect changes, with the profile folder as "~"; the
@@ -70,6 +75,16 @@ public sealed class ConnectionsViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _connected, value);
     }
 
+    /// <summary>
+    /// Connected, but to another OrbMet copy's helper (this folder was moved,
+    /// or another copy connected last): Reconnect is offered beside Disconnect.
+    /// </summary>
+    public bool NeedsReconnect
+    {
+        get => _needsReconnect;
+        private set => SetProperty(ref _needsReconnect, value);
+    }
+
     public bool CanToggle
     {
         get => _canToggle;
@@ -78,6 +93,7 @@ public sealed class ConnectionsViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _canToggle, value))
             {
                 ToggleCommand.RaiseCanExecuteChanged();
+                ReconnectCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -114,7 +130,18 @@ public sealed class ConnectionsViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (state.Connected)
+        if (state.Connected && state.PointsElsewhere)
+        {
+            // Connecting again is the fix, so it is offered, never done here:
+            // Claude's settings change only when the user asks (AGENTS.md 6).
+            SetState(
+                state.HelperMissing ? "LinkBroken" : "ConnectedElsewhere",
+                state.HelperMissing ? "LinkBrokenExplained" : "ElsewhereExplained",
+                canToggle: true,
+                connected: true);
+            NeedsReconnect = true;
+        }
+        else if (state.Connected)
         {
             SetConnected("Connected");
         }
@@ -128,7 +155,11 @@ public sealed class ConnectionsViewModel : ObservableObject, IDisposable
         }
     }
 
-    private async Task ToggleAsync()
+    private Task ToggleAsync() => RunAsync(disconnect: IsConnected);
+
+    private Task ReconnectAsync() => RunAsync(disconnect: false);
+
+    private async Task RunAsync(bool disconnect)
     {
         var integration = _integrationFactory();
         if (integration is null)
@@ -145,7 +176,7 @@ public sealed class ConnectionsViewModel : ObservableObject, IDisposable
         try
         {
             result = await Task
-                .Run(() => wasConnected ? integration.Disconnect() : integration.Connect())
+                .Run(() => disconnect ? integration.Disconnect() : integration.Connect())
                 .ConfigureAwait(true);
         }
         catch (Exception)
@@ -235,6 +266,7 @@ public sealed class ConnectionsViewModel : ObservableObject, IDisposable
     private void SetState(string statusKey, string? detailKey, bool canToggle, bool connected)
     {
         _showsConnectedDetail = false;
+        NeedsReconnect = false;
         _statusKey = statusKey;
         _detailKey = detailKey;
         CanToggle = canToggle;

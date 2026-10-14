@@ -32,6 +32,9 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Assets\OrbMet.ico</ApplicationIcon>
+    <!-- The file people start is OrbMet.exe; resource URIs use this name. -->
+    <AssemblyName>OrbMet</AssemblyName>
+    <Product>OrbMet</Product>
   </PropertyGroup>
 
   <!-- Keep the capture helper beside the app so the same relative lookup works

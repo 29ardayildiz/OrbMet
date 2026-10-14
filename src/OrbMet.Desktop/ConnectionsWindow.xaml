@@ -69,7 +69,25 @@
                 <TextBlock Text="{Binding SettingsFootnote, TargetNullValue=''}"
                            Style="{StaticResource Footnote}" />
 
-                <Grid Margin="0,14,0,0" HorizontalAlignment="Left">
+                <!-- Not connected: Connect. Connected here: Disconnect. Connected to
+                     another copy's helper: Reconnect, then Disconnect. -->
+                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                    <Button Content="{Binding [Reconnect], Source={x:Static infra:Localizer.Instance}}"
+                            Tag="&#xE71B;"
+                            Command="{Binding ReconnectCommand}"
+                            Margin="0,0,8,0"
+                            AutomationProperties.Name="{Binding [ReconnectClaude], Source={x:Static infra:Localizer.Instance}}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource PrimaryActionButton}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding NeedsReconnect}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     <Button Content="{Binding [Connect], Source={x:Static infra:Localizer.Instance}}"
                             Tag="&#xE71B;"
                             Command="{Binding ToggleCommand}"
@@ -99,7 +117,7 @@
                             </Style>
                         </Button.Style>
                     </Button>
-                </Grid>
+                </StackPanel>
             </StackPanel>
         </Border>
 
