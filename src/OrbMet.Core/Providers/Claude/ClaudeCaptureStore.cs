@@ -101,6 +101,40 @@ public sealed class ClaudeCaptureStore
         return records;
     }
 
+    /// <summary>
+    /// Deletes temporary files a writer left behind when it was stopped mid
+    /// write. Only files older than <paramref name="olderThan"/> go, so a write
+    /// still in progress is never touched. Returns how many were removed.
+    /// </summary>
+    public int RemoveLeftovers(DateTimeOffset now, TimeSpan olderThan)
+    {
+        if (!Directory.Exists(_directory))
+        {
+            return 0;
+        }
+
+        var removed = 0;
+        foreach (var path in Directory.EnumerateFiles(_directory, "*.tmp-*"))
+        {
+            try
+            {
+                if (now - File.GetLastWriteTimeUtc(path) < olderThan)
+                {
+                    continue;
+                }
+
+                File.Delete(path);
+                removed++;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Still held by someone; the next sweep tries again.
+            }
+        }
+
+        return removed;
+    }
+
     private static bool HasCurrentWindow(ClaudeCaptureRecord record, DateTimeOffset now) =>
         record.Windows.Any(window => window.ResetsAtUtc is null || window.ResetsAtUtc > now);
 

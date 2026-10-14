@@ -12,6 +12,7 @@ public sealed class ClaudeCaptureProvider : IUsageProvider
     private readonly ClaudeCaptureStore _store;
     private readonly Func<DateTimeOffset> _clock;
     private readonly TimeSpan _freshFor;
+    private bool _sweptLeftovers;
 
     public ClaudeCaptureProvider(
         string captureDirectory,
@@ -34,6 +35,12 @@ public sealed class ClaudeCaptureProvider : IUsageProvider
         ClaudeCaptureRecord? record;
         try
         {
+            if (!_sweptLeftovers)
+            {
+                _sweptLeftovers = true;
+                _store.RemoveLeftovers(now, TimeSpan.FromHours(1));
+            }
+
             record = _store.ReadNewest(now);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

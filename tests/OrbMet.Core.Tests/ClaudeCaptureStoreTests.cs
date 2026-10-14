@@ -123,4 +123,33 @@ public class ClaudeCaptureStoreTests
 
         Assert.NotNull(store.ReadNewest(Now));
     }
+
+    [Fact]
+    public void RemovesOnlyOldLeftoverTemporaryFiles()
+    {
+        using var temp = new TempDirectory();
+        var store = new ClaudeCaptureStore(temp.Path);
+        store.Save(Record("good", Now, percent: 55));
+
+        var old = Path.Combine(temp.Path, "claude-good.json.tmp-old");
+        var inProgress = Path.Combine(temp.Path, "claude-good.json.tmp-new");
+        File.WriteAllText(old, "{}");
+        File.WriteAllText(inProgress, "{}");
+        File.SetLastWriteTimeUtc(old, Now.AddHours(-2).UtcDateTime);
+        File.SetLastWriteTimeUtc(inProgress, Now.AddMinutes(-1).UtcDateTime);
+
+        Assert.Equal(1, store.RemoveLeftovers(Now, TimeSpan.FromHours(1)));
+        Assert.False(File.Exists(old));
+        Assert.True(File.Exists(inProgress));
+        Assert.Equal(55, store.ReadNewest(Now)!.Windows.Single().UsedPercent);
+    }
+
+    [Fact]
+    public void RemovingLeftoversFromAMissingDirectoryDoesNothing()
+    {
+        using var temp = new TempDirectory();
+        var store = new ClaudeCaptureStore(Path.Combine(temp.Path, "absent"));
+
+        Assert.Equal(0, store.RemoveLeftovers(Now, TimeSpan.FromHours(1)));
+    }
 }
