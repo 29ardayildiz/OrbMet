@@ -14,6 +14,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 $root = Split-Path $PSScriptRoot -Parent
 $artifacts = Join-Path $root "artifacts"
 $staging = Join-Path $artifacts "publish"
@@ -71,7 +72,19 @@ foreach ($variant in $variants) {
         throw "$($variant.Name) is missing: $($missing -join ', ')"
     }
 
-    Compress-Archive -Path (Join-Path $folder "*") -DestinationPath $zip
+    # Compress-Archive and ZipFile.CreateFromDirectory in Windows PowerShell
+    # both write "licenses\x" entry names; the zip format wants "/".
+    $archive = [System.IO.Compression.ZipFile]::Open($zip, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($file in Get-ChildItem $folder -Recurse -File) {
+            $entry = $file.FullName.Substring($folder.Length + 1).Replace('\', '/')
+            [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                $archive, $file.FullName, $entry, [System.IO.Compression.CompressionLevel]::Optimal)
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
     $size = (Get-Item $zip).Length / 1MB
     Write-Host ("{0}.zip  {1:N1} MB" -f $variant.Name, $size)
 }
