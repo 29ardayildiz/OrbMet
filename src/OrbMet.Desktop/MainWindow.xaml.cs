@@ -118,7 +118,12 @@ public partial class MainWindow : Window
         SystemParameters.StaticPropertyChanged += OnSystemParameterChanged;
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
-        Loaded += async (_, _) => await _viewModel.StartAsync();
+        var welcome = new WelcomeStore(paths.SettingsFile);
+        Loaded += async (_, _) =>
+        {
+            await _viewModel.StartAsync();
+            await OfferConnectionsOnceAsync(welcome);
+        };
         Closing += OnClosing;
         Closed += (_, _) => CleanUp();
     }
@@ -428,8 +433,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        // A click, not a drag: on a ring it refreshes that provider alone.
-        if (ring is not null)
+        // A click, not a drag: on a ring it refreshes that provider alone, or
+        // opens Connections when nothing can arrive until it is connected.
+        if (ring is { NeedsConnecting: true })
+        {
+            OpenConnections();
+        }
+        else if (ring is not null)
         {
             _ = _viewModel.RefreshProviderAsync(ring);
         }
@@ -660,6 +670,32 @@ public partial class MainWindow : Window
         }
 
         _detailsWindow.Activate();
+    }
+
+    /// <summary>
+    /// The first time OrbMet runs and finds Claude Code unconnected, it opens
+    /// Connections once; the user started OrbMet, so taking focus is expected.
+    /// Already connected counts as offered. Unknown (unreadable settings)
+    /// tries again next start.
+    /// </summary>
+    private async Task OfferConnectionsOnceAsync(WelcomeStore welcome)
+    {
+        if (await Task.Run(() => welcome.ConnectionsOffered))
+        {
+            return;
+        }
+
+        if (await _viewModel.CheckClaudeLinkAsync() is not { SettingsReadable: true } state)
+        {
+            return;
+        }
+
+        if (!state.Connected)
+        {
+            OpenConnections();
+        }
+
+        await Task.Run(welcome.MarkConnectionsOffered);
     }
 
     private void OnConnectionsClick(object sender, RoutedEventArgs e) => OpenConnections();

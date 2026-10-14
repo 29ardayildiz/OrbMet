@@ -241,7 +241,10 @@
     <value>Claude Code artık var olmayan bir yardımcıyı çalıştırıyor, bu yüzden kullanım verisi gelmiyor. OrbMet büyük ihtimalle taşındı. Bu kopyayı kullanmak için yeniden bağla.</value>
   </data>
   <data name="ClaudeLinkBroken" xml:space="preserve">
-    <value>Claude Code artık var olmayan bir yardımcıyı çalıştıracak şekilde ayarlı. Sağ tık menüsündeki Bağlantılar'dan yeniden bağla.</value>
+    <value>Claude Code artık var olmayan bir yardımcıyı çalıştıracak şekilde ayarlı. Yeniden bağlamak için halkaya tıkla.</value>
+  </data>
+  <data name="ClaudeNotConnected" xml:space="preserve">
+    <value>Claude Code bağlı değil. Bağlamak için halkaya tıkla.</value>
   </data>
   <data name="CodexOwnSignIn" xml:space="preserve">
     <value>Codex'in kendi oturumu kullanılır; ayrıca bağlamak gerekmez.</value>

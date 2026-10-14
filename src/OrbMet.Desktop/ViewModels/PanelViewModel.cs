@@ -179,22 +179,30 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Whether Claude runs a helper that is gone; cheap, a read of its settings file.</summary>
-    public async Task CheckClaudeLinkAsync()
+    /// <summary>
+    /// Whether Claude is connected, and whether it runs a helper that is gone;
+    /// cheap, a read of its settings file. Returns what was read, or null.
+    /// </summary>
+    public async Task<ClaudeIntegrationState?> CheckClaudeLinkAsync()
     {
         if (_claudeLink is null || _disposed)
         {
-            return;
+            return null;
         }
 
         try
         {
             var state = await Task.Run(_claudeLink);
             Claude.LinkBroken = state?.HelperMissing == true;
+
+            // Only a settings file that was read says "not connected"; an
+            // unreadable one is the Connections window's to report.
+            Claude.NotConnected = state is { SettingsReadable: true, Connected: false };
+            return state;
         }
         catch (Exception)
         {
-            // An unreadable settings file is the Connections window's to report.
+            return null;
         }
     }
 

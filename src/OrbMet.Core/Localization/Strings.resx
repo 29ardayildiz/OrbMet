@@ -262,8 +262,12 @@
     <value>Claude Code runs a helper that's no longer there, so no usage arrives. OrbMet was probably moved. Reconnect to use this copy.</value>
   </data>
   <data name="ClaudeLinkBroken" xml:space="preserve">
-    <value>Claude Code is set to run a helper that's no longer there. Reconnect from Connections in the right-click menu.</value>
-    <comment>The Claude card's message.</comment>
+    <value>Claude Code is set to run a helper that's no longer there. Click the ring to reconnect.</value>
+    <comment>The Claude card's message. A click on the ring opens Connections.</comment>
+  </data>
+  <data name="ClaudeNotConnected" xml:space="preserve">
+    <value>Claude Code isn't connected. Click the ring to connect it.</value>
+    <comment>The Claude card's message. A click on the ring opens Connections.</comment>
   </data>
   <data name="CodexOwnSignIn" xml:space="preserve">
     <value>Codex uses its own sign-in; there's nothing to connect.</value>

@@ -26,6 +26,7 @@ public sealed class ProviderSlotViewModel : ObservableObject
     private string? _planText;
     private bool _isReceiving;
     private bool _linkBroken;
+    private bool _notConnected;
     private IReadOnlyList<UsageWindowRowViewModel> _rows = Array.Empty<UsageWindowRowViewModel>();
 
     public ProviderSlotViewModel(ProviderId providerId, string displayName, string mark)
@@ -144,10 +145,32 @@ public sealed class ProviderSlotViewModel : ObservableObject
         {
             if (SetProperty(ref _linkBroken, value))
             {
+                OnPropertyChanged(nameof(NeedsConnecting));
                 Rebuild();
             }
         }
     }
+
+    /// <summary>
+    /// Claude Code's settings carry no OrbMet status line: nothing can arrive
+    /// until the user connects it, which the card says and a click on the ring
+    /// leads to.
+    /// </summary>
+    public bool NotConnected
+    {
+        get => _notConnected;
+        internal set
+        {
+            if (SetProperty(ref _notConnected, value))
+            {
+                OnPropertyChanged(nameof(NeedsConnecting));
+                Rebuild();
+            }
+        }
+    }
+
+    /// <summary>A click on the ring opens Connections rather than refreshing.</summary>
+    public bool NeedsConnecting => _linkBroken || _notConnected;
 
     public IReadOnlyList<UsageWindowRowViewModel> Rows
     {
@@ -238,6 +261,11 @@ public sealed class ProviderSlotViewModel : ObservableObject
             return words["ClaudeLinkBroken"];
         }
 
+        if (_notConnected)
+        {
+            return words["ClaudeNotConnected"];
+        }
+
         switch (snapshot.ConnectionState)
         {
             case ConnectionState.Disabled:
@@ -284,7 +312,8 @@ public sealed class ProviderSlotViewModel : ObservableObject
         }
         else
         {
-            Message = Localizer.Instance[_linkBroken ? "ClaudeLinkBroken" : "CheckingConnection"];
+            Message = Localizer.Instance[
+                _linkBroken ? "ClaudeLinkBroken" : _notConnected ? "ClaudeNotConnected" : "CheckingConnection"];
         }
     }
 }
