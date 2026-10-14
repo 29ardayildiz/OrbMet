@@ -8,10 +8,15 @@ namespace OrbMet.Core.Usage;
 /// </summary>
 public static class UsageSelection
 {
+    /// <summary>The window people pace their work by, shown first when there is one.</summary>
+    public const long FiveHourSeconds = 5 * 60 * 60;
+
     /// <summary>
-    /// Picks the window shown in the usage ring: the account-wide window with
-    /// the highest used percentage, or the highest grouped window when no
-    /// account-wide window carries a value. Returns null when nothing is known.
+    /// Picks the window shown in the usage ring. The candidates are the
+    /// account-wide windows with a value, or the grouped ones when there are
+    /// none. Among them a 5-hour window wins even if a longer one is fuller
+    /// (the card lists every window); otherwise the highest used percentage.
+    /// Returns null when nothing is known.
     /// </summary>
     public static UsageWindow? SelectRingWindow(ProviderSnapshot snapshot)
     {
@@ -32,7 +37,13 @@ public static class UsageSelection
 
         var candidates = accountWide.Count > 0 ? accountWide : withValue;
 
-        return candidates
+        // Codex reports every window under a limit group, so the 5-hour
+        // window is looked for among the same candidates, not only account-wide.
+        var fiveHour = candidates
+            .Where(window => window.DurationSeconds == FiveHourSeconds)
+            .ToList();
+
+        return (fiveHour.Count > 0 ? fiveHour : candidates)
             .OrderByDescending(window => window.UsedPercent)
             .ThenBy(window => window.Id, StringComparer.Ordinal)
             .First();

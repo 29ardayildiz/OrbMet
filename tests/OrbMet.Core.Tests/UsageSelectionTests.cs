@@ -26,6 +26,47 @@ public class UsageSelectionTests
     }
 
     [Fact]
+    public void ShowsTheFiveHourWindowEvenWhenTheWeeklyOneIsFuller()
+    {
+        var snapshot = Snapshot(
+            new UsageWindow { Id = "seven_day", UsedPercent = 30, DurationSeconds = 7 * 24 * 60 * 60 },
+            new UsageWindow { Id = "five_hour", UsedPercent = 15, DurationSeconds = 5 * 60 * 60 });
+
+        Assert.Equal("five_hour", UsageSelection.SelectRingWindow(snapshot)!.Id);
+    }
+
+    [Fact]
+    public void ShowsTheFiveHourWindowEvenWhenTheWeeklyOneIsSpent()
+    {
+        var snapshot = Snapshot(
+            new UsageWindow { Id = "seven_day", UsedPercent = 100, DurationSeconds = 7 * 24 * 60 * 60 },
+            new UsageWindow { Id = "five_hour", UsedPercent = 10, DurationSeconds = 5 * 60 * 60 });
+
+        Assert.Equal("five_hour", UsageSelection.SelectRingWindow(snapshot)!.Id);
+    }
+
+    [Fact]
+    public void FallsBackToTheHighestWhenTheFiveHourWindowHasNoValue()
+    {
+        var snapshot = Snapshot(
+            new UsageWindow { Id = "five_hour", UsedPercent = null, DurationSeconds = 5 * 60 * 60 },
+            new UsageWindow { Id = "seven_day", UsedPercent = 30, DurationSeconds = 7 * 24 * 60 * 60 },
+            new UsageWindow { Id = "monthly", UsedPercent = 12 });
+
+        Assert.Equal("seven_day", UsageSelection.SelectRingWindow(snapshot)!.Id);
+    }
+
+    [Fact]
+    public void AGroupedFiveHourWindowDoesNotTakeTheRing()
+    {
+        var snapshot = Snapshot(
+            new UsageWindow { Id = "weekly", UsedPercent = 20, DurationSeconds = 7 * 24 * 60 * 60 },
+            new UsageWindow { Id = "opus", GroupId = "opus", ScopeLabel = "Opus", UsedPercent = 5, DurationSeconds = 5 * 60 * 60 });
+
+        Assert.Equal("weekly", UsageSelection.SelectRingWindow(snapshot)!.Id);
+    }
+
+    [Fact]
     public void IgnoresWindowsWithoutAReportedPercentage()
     {
         var snapshot = Snapshot(

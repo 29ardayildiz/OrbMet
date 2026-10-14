@@ -183,4 +183,17 @@ public class CodexUsageNormalizerTests
         Assert.NotNull(selected);
         Assert.Equal("codex.secondary", selected!.Id);
     }
+
+    [Fact]
+    public void SelectionPicksTheFiveHourWindowWhenCodexReportsOne()
+    {
+        var snapshot = Normalize(
+            "{\"rateLimits\":{\"limitId\":\"codex\"," +
+            "\"primary\":{\"usedPercent\":30,\"windowDurationMins\":300}," +
+            "\"secondary\":{\"usedPercent\":70,\"windowDurationMins\":10080}}}");
+
+        var selected = UsageSelection.SelectRingWindow(snapshot);
+
+        Assert.Equal("codex.primary", selected!.Id);
+    }
 }

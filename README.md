@@ -12,7 +12,7 @@ starts to matter: green below 50%, yellow below 75%, red above.
 
 ## Features
 
-- One ring per provider, with the percentage the provider reports.
+- One ring per provider showing its 5-hour limit, as the provider reports it.
 - Hover a ring to see every limit it reports (5-hour, weekly, per model),
   how much of each is used and when it resets.
 - Click a ring to refresh it.
