@@ -4,6 +4,8 @@ A small Windows panel that shows how much of your **Claude Code** and **Codex**
 usage limits you have used, so you can see it at a glance while you work in
 the terminal.
 
+<p align="center"><img src="docs/screenshot.png" width="378" alt="The OrbMet strip with the Claude Code card open"></p>
+
 OrbMet sits on the edge of your screen as a black strip with one ring per
 provider. The ring fills as you use your limit and changes colour only when it
 starts to matter: green below 50%, yellow below 75%, red above.
