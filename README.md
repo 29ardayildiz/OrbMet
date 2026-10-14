@@ -16,9 +16,12 @@ starts to matter: green below 50%, yellow below 75%, red above.
 - Hover a ring to see every limit it reports (5-hour, weekly, per model),
   how much of each is used and when it resets.
 - Click a ring to refresh it.
-- Drag the strip to any edge or corner; it docks there and remembers where.
+- Drag the strip to any edge or corner and it docks there, or leave it
+  anywhere on screen. It remembers where.
 - Never takes focus from your terminal.
 - English and Turkish, switchable from the menu.
+
+<p align="center"><img src="docs/docking.gif" width="600" alt="Dragging the strip round the screen: it docks to each edge, turns into an L in the corners and floats in the middle, then hovering each ring opens its card"></p>
 
 ## Requirements
 
