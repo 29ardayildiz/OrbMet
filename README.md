@@ -38,6 +38,9 @@ run `OrbMet.exe`. There is no installer.
 | `OrbMet-<version>-win-x64.zip` | ~70 MB | Nothing, runs as is |
 | `OrbMet-<version>-win-x64-runtime-required.zip` | <1 MB | [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) |
 
+OrbMet is not code-signed, so the first time you run it Windows may show
+**Windows protected your PC**. Click **More info**, then **Run anyway**.
+
 OrbMet lives in the system tray. Right-click the strip or the tray icon for
 the menu; **Exit** is in the tray menu.
 
