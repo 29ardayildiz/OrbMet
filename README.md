@@ -4,7 +4,7 @@ A small Windows panel that shows how much of your **Claude Code** and **Codex**
 usage limits you have used, so you can see it at a glance while you work in
 the terminal. It shows **Antigravity**'s limits too, if you have it.
 
-<p align="center"><img src="docs/screenshot.png" width="378" alt="The OrbMet strip with the Claude Code card open"></p>
+<p align="center"><img src="docs/screenshot.png" width="378" alt="The OrbMet strip with rings for Claude Code, Codex and Antigravity, and the Claude Code card open showing each limit, when it resets and how long that is from now"></p>
 
 OrbMet sits on the edge of your screen as a black strip with one ring per
 provider. The ring fills as you use your limit and changes colour only when it
@@ -43,8 +43,9 @@ starts to matter: green below 50%, yellow below 75%, red above.
   limit passes 75, 80, 90 or 95%, when it runs out, when a limit you were
   warned about resets, and when Claude Code gets disconnected or Codex can't
   be read. Each is said once.
-- Drag the strip to any edge or corner and it docks there, or leave it
-  anywhere on screen. It remembers where.
+- Drag the strip to any edge and it docks there, or leave it anywhere on
+  screen. Push it into a corner and the rings turn onto the other edge one at
+  a time, the last one first. It remembers where, and in what shape.
 - Never takes focus from your terminal.
 - Can start with Windows (off unless you turn it on in the menu).
 - Tells you when a new version is out. If you used the installer, **Update**
@@ -52,7 +53,7 @@ starts to matter: green below 50%, yellow below 75%, red above.
   opens the download page.
 - English and Turkish, switchable from the menu.
 
-<p align="center"><img src="docs/docking.gif" width="600" alt="Dragging the strip round the screen: it docks to each edge, turns into an L in the corners and floats in the middle, then hovering each ring opens its card"></p>
+<p align="center"><img src="docs/corner.gif" width="320" alt="Dragging the strip along the top into the top-right corner: Antigravity turns down the right side first, then Codex, then Claude Code, until the strip stands on the right edge; dragged back up, the rings turn back the same way"></p>
 
 ## Requirements
 
@@ -113,6 +114,8 @@ started yet**: Antigravity has no reset time for it then.
 
 The address `RetrieveUserQuotaSummary` that OrbMet asks is Antigravity's own,
 not a documented API, so a new Antigravity version could change it.
+
+<p align="center"><img src="docs/antigravity.png" width="378" alt="The Antigravity card: a 5-hour and a weekly limit for Gemini and for Claude and GPT, the unused one saying Not started yet"></p>
 
 ## Privacy
 
@@ -175,7 +178,7 @@ dotnet test -c Debug --no-build
 Release packages:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -Version 0.2.0
+powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -Version 0.7.0
 ```
 
 This writes the installer and the zip to `artifacts\`, each with a `.sha256`
