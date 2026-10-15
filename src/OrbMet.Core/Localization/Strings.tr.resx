@@ -300,4 +300,25 @@
   <data name="AlertMoreFormat" xml:space="preserve">
     <value>+{0} bildirim daha</value>
   </data>
+  <data name="CheckForUpdates" xml:space="preserve">
+    <value>Güncellemeleri denetle</value>
+  </data>
+  <data name="UpdateToFormat" xml:space="preserve">
+    <value>{0} sürümüne güncelle</value>
+  </data>
+  <data name="UpdateDownloading" xml:space="preserve">
+    <value>Güncelleme indiriliyor…</value>
+  </data>
+  <data name="UpdateAvailableFormat" xml:space="preserve">
+    <value>OrbMet {0} çıktı</value>
+  </data>
+  <data name="UpdateAvailableBody" xml:space="preserve">
+    <value>Güncellemek için tıkla.</value>
+  </data>
+  <data name="UpdateOpenPageBody" xml:space="preserve">
+    <value>İndirme sayfasını açmak için tıkla.</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>OrbMet güncellenemedi</value>
+  </data>
 </root>

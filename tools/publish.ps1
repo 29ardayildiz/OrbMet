@@ -2,6 +2,8 @@
 #
 #   OrbMet-<version>-setup.exe    installer (per user, no administrator rights)
 #   OrbMet-<version>-win-x64.zip  the same files to unpack and run, no installer
+#   *.sha256                      SHA-256 of each; OrbMet's updater will not run
+#                                 an installer without its file
 #
 # Both carry the self-contained build, so no .NET install is needed. The panel
 # and the Claude status line helper are published into one folder, since
@@ -66,7 +68,7 @@ function Find-Iscc {
     throw "Inno Setup 6 was not found. Install it with: winget install JRSoftware.InnoSetup"
 }
 
-foreach ($old in $folder, $zip, $setup) {
+foreach ($old in $folder, $zip, $setup, "$zip.sha256", "$setup.sha256") {
     if (Test-Path $old) { Remove-Item $old -Recurse -Force }
 }
 
@@ -107,3 +109,9 @@ if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup failed"
 }
 Write-Host ("{0}  {1:N1} MB" -f (Split-Path $setup -Leaf), ((Get-Item $setup).Length / 1MB))
+
+# "<hash>  <name>", the sha256sum format, without a byte order mark.
+foreach ($file in $setup, $zip) {
+    $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+    [System.IO.File]::WriteAllText("$file.sha256", "$hash  $(Split-Path $file -Leaf)`n")
+}

@@ -71,6 +71,8 @@ public partial class MainWindow : Window
         StripMenu.Items.Insert(3, AlertsMenu.Create());
         StripMenu.Items.Insert(5, LanguageMenu.Create());
         StripMenu.Items.Insert(6, StartupMenu.Create());
+        StripMenu.Items.Insert(7, UpdateMenu.CreateCheckItem());
+        StripMenu.Items.Insert(0, UpdateMenu.CreateUpdateItem());
         StartupMenu.FollowMove();
 
         var paths = OrbMetPaths.FromEnvironment();
@@ -134,6 +136,7 @@ public partial class MainWindow : Window
             openDetails: OpenDetails,
             openConnections: OpenConnections);
         _viewModel.ReadCompleted += (_, _) => notifier.Check();
+        UpdateMenu.Start(_tray, ExitApplication);
 
         _card = new DetailCardWindow();
 
@@ -788,6 +791,7 @@ public partial class MainWindow : Window
         _pointerSampler.Stop();
         _card.Close();
         _viewModel.Dispose();
+        UpdateMenu.Stop();
         _tray.Dispose();
         _connectionsWindow?.Close();
         _detailsWindow?.Close();

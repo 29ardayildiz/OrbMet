@@ -9,6 +9,20 @@ public partial class App : Application
 
     private Mutex? _instanceMutex;
 
+    /// <summary>
+    /// Lets go of the single-instance lock before OrbMet exits, so an
+    /// installer started for an update does not wait on it.
+    /// </summary>
+    public static void ReleaseInstance()
+    {
+        if (Current is App { _instanceMutex: { } mutex } app)
+        {
+            mutex.ReleaseMutex();
+            mutex.Dispose();
+            app._instanceMutex = null;
+        }
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         // Run by the uninstaller: undo this copy's settings outside its folder, no panel.

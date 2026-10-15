@@ -333,4 +333,28 @@
     <value>+{0} more</value>
     <comment>Added when several notifications come at once.</comment>
   </data>
+  <data name="CheckForUpdates" xml:space="preserve">
+    <value>Check for updates</value>
+    <comment>Menu item in the strip and tray menus; a check on the right when on.</comment>
+  </data>
+  <data name="UpdateToFormat" xml:space="preserve">
+    <value>Update to {0}</value>
+    <comment>Top menu item when a newer version is out. {0} is a version such as 0.4.0.</comment>
+  </data>
+  <data name="UpdateDownloading" xml:space="preserve">
+    <value>Downloading update…</value>
+  </data>
+  <data name="UpdateAvailableFormat" xml:space="preserve">
+    <value>OrbMet {0} is out</value>
+    <comment>Notification title. {0} is a version.</comment>
+  </data>
+  <data name="UpdateAvailableBody" xml:space="preserve">
+    <value>Click to update.</value>
+  </data>
+  <data name="UpdateOpenPageBody" xml:space="preserve">
+    <value>Click to open the download page.</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>Couldn't update OrbMet</value>
+  </data>
 </root>

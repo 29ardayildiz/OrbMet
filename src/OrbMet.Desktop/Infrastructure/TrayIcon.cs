@@ -37,6 +37,7 @@ internal sealed class TrayIcon : IDisposable
         {
             Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint,
         };
+        _menu.Items.Add(UpdateMenu.CreateUpdateItem());
         _menu.Items.Add(Item("TogglePanel", "\uE7B3", togglePanel));
         _menu.Items.Add(Item("OpenDetails", "\uE946", openDetails));
         _menu.Items.Add(Item("Refresh", "\uE72C", refresh));
@@ -45,6 +46,7 @@ internal sealed class TrayIcon : IDisposable
         _menu.Items.Add(AlertsMenu.Create());
         _menu.Items.Add(LanguageMenu.Create());
         _menu.Items.Add(StartupMenu.Create());
+        _menu.Items.Add(UpdateMenu.CreateCheckItem());
         _menu.Items.Add(new WpfSeparator());
         _menu.Items.Add(Item("Exit", "\uE7E8", exit));
         _menu.Opened += (_, _) => TakeForeground();

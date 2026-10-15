@@ -28,6 +28,9 @@ starts to matter: green below 50%, yellow below 75%, red above.
   anywhere on screen. It remembers where.
 - Never takes focus from your terminal.
 - Can start with Windows (off unless you turn it on in the menu).
+- Tells you when a new version is out. If you used the installer, **Update**
+  in the menu downloads it, installs it and restarts OrbMet; from the zip it
+  opens the download page.
 - English and Turkish, switchable from the menu.
 
 <p align="center"><img src="docs/docking.gif" width="600" alt="Dragging the strip round the screen: it docks to each edge, turns into an L in the corners and floats in the middle, then hovering each ring opens its card"></p>
@@ -81,7 +84,15 @@ response. Good to know:
 
 ## Privacy
 
-OrbMet makes no network requests of its own and sends nothing anywhere.
+OrbMet sends nothing about you or your usage anywhere. Its one network
+request of its own is the update check:
+
+- At start and once a day it asks GitHub for OrbMet's latest release
+  (`api.github.com/repos/29ardayildiz/OrbMet/releases/latest`). GitHub sees
+  your IP address, as with any download; no account, usage or settings are
+  sent. Turn it off with **Check for updates** in the menu.
+- Updating downloads the installer from this repository's releases and
+  checks its SHA-256 before running it.
 
 - After each response, Claude Code hands the helper a summary of the session.
   The helper keeps only the rate-limit figures (percentages and reset times)

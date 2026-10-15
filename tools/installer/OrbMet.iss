@@ -84,11 +84,18 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "{app}\OrbMet.exe"; Description: "{cm:LaunchProgram,OrbMet}"; Flags: nowait postinstall skipifsilent
+; An update from the menu runs setup silently with /relaunch=1 and exits; this starts the new version.
+Filename: "{app}\OrbMet.exe"; Flags: nowait; Check: Relaunching
 
 [UninstallRun]
 Filename: "{app}\OrbMet.exe"; Parameters: "--uninstall-cleanup"; Flags: runhidden waituntilterminated; RunOnceId: "OrbMetCleanup"
 
 [Code]
+function Relaunching: Boolean;
+begin
+  Result := ExpandConstant('{param:relaunch|0}') = '1';
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   DataDir: String;
