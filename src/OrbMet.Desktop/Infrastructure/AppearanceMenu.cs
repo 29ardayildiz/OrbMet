@@ -47,11 +47,28 @@ internal static class AppearanceMenu
     {
         (ProviderId.ClaudeCode, "Claude Code"),
         (ProviderId.Codex, "Codex"),
+        (ProviderId.Antigravity, "Antigravity"),
     };
+
+    // What the machine has, looked at again each time the menu opens, so a
+    // provider's lines appear once it is installed (design.md 4.4).
+    private static IReadOnlySet<ProviderId> _installed = new HashSet<ProviderId>();
+
+    /// <summary>The menu is opening: notice a provider installed or removed since.</summary>
+    private static event Action? Opening;
 
     public static MenuItem Create()
     {
         var menu = new MenuItem { Icon = Glyph };
+        _installed = ProviderPresence.Detect();
+        menu.SubmenuOpened += (_, e) =>
+        {
+            if (ReferenceEquals(e.OriginalSource, menu))
+            {
+                _installed = ProviderPresence.Detect();
+                Opening?.Invoke();
+            }
+        };
         menu.Items.Add(RingChoiceMenu.Create());
         var clock = Toggle("WindowClock", settings => settings.WindowClock, settings => settings with { WindowClock = !settings.WindowClock });
         var remaining = Toggle("ShowRemaining", settings => settings.ShowRemaining, settings => settings with { ShowRemaining = !settings.ShowRemaining });
@@ -100,9 +117,10 @@ internal static class AppearanceMenu
     }
 
     /// <summary>
-    /// "Claude Code on the strip" and "Codex on the strip" (design.md 4.4):
-    /// unticked hides that provider and stops reading it. The last one shown
-    /// cannot be hidden, so the strip is never empty.
+    /// "Claude Code on the strip", "Codex on the strip", "Antigravity on the
+    /// strip" (design.md 4.4): unticked hides that provider and stops reading
+    /// it. The last one on the strip cannot be hidden, so it is never empty.
+    /// Antigravity's line is there only while it is installed.
     /// </summary>
     private static MenuItem ShowProvider(ProviderId providerId, string providerName)
     {
@@ -110,10 +128,9 @@ internal static class AppearanceMenu
         item.Click += (_, _) =>
         {
             var hide = !Current.Hidden.Contains(providerId);
-            var next = providerId == ProviderId.Codex ? Current with { HideCodex = hide } : Current with { HideClaude = hide };
-            if (next.Hidden.Count < Providers.Length)
+            if (!hide || CanHide(providerId))
             {
-                Use(next);
+                Use(Current.WithHidden(providerId, hide));
             }
         };
 
@@ -121,14 +138,27 @@ internal static class AppearanceMenu
         {
             item.Header = Localizer.Instance.Text.Format("OnStripFormat", providerName);
             item.IsChecked = !Current.Hidden.Contains(providerId);
-            item.IsEnabled = Current.Hidden.Contains(providerId) || Current.Hidden.Count < Providers.Length - 1;
+            item.IsEnabled = Current.Hidden.Contains(providerId) || CanHide(providerId);
+            item.Visibility = Offered(providerId) ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         }
 
         Show();
         Changed += Show;
+        Opening += Show;
         Localizer.Instance.LanguageChanged += (_, _) => Show();
         return item;
     }
+
+    // Hiding it still leaves something on the strip.
+    private static bool CanHide(ProviderId providerId)
+    {
+        var shown = ProviderPresence.Visible(_installed, Current.Hidden);
+        return shown.Contains(providerId) && shown.Count > 1;
+    }
+
+    // Claude Code and Codex are always offered; Antigravity once it is installed.
+    private static bool Offered(ProviderId providerId) =>
+        providerId != ProviderId.Antigravity || _installed.Contains(providerId);
 
     /// <summary>"Fold when idle": off, or after 10 seconds, 30 seconds or 2 minutes away (design.md 4.3).</summary>
     private static MenuItem CollapseMenu()
@@ -188,10 +218,13 @@ internal static class AppearanceMenu
                 item.Icon = Swatch(UsagePalette.Ring(colour));
                 item.IsChecked = colour == Current.ColourFor(providerId);
             }
+
+            menu.Visibility = Offered(providerId) ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         }
 
         Show();
         Changed += Show;
+        Opening += Show;
         Localizer.Instance.LanguageChanged += (_, _) => Show();
         return menu;
     }

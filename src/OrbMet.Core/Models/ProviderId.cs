@@ -5,4 +5,5 @@ public enum ProviderId
 {
     ClaudeCode,
     Codex,
+    Antigravity,
 }

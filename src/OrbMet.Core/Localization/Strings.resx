@@ -113,6 +113,17 @@
   <data name="ClaudeAwaiting" xml:space="preserve">
     <value>Waiting for data from Claude Code. If it isn't connected, connect it from Connections in the right-click menu.</value>
   </data>
+  <data name="AntigravityNotRunning" xml:space="preserve">
+    <value>Read while Antigravity is open.</value>
+    <comment>Antigravity's quotas are only known to its running language server.</comment>
+  </data>
+  <data name="AntigravityNotAnswering" xml:space="preserve">
+    <value>Antigravity is open but isn't answering.</value>
+  </data>
+  <data name="NotStarted" xml:space="preserve">
+    <value>Not started yet</value>
+    <comment>Nothing used in this window, so it has no reset time yet.</comment>
+  </data>
   <data name="AwaitingUsage" xml:space="preserve">
     <value>Waiting for new usage data.</value>
   </data>

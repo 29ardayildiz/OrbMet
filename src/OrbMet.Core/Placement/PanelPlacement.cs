@@ -50,7 +50,11 @@ public readonly record struct Box(double X, double Y, double Width, double Heigh
 /// The providers run along the strip last to first: the order a drag left
 /// them in, since rings keep their order as the strip changes shape.
 /// </param>
-public sealed record PanelPosition(PanelDock Dock, double HorizontalRatio, double VerticalRatio, string? DisplayId, bool Reversed = false)
+/// <param name="Down">
+/// In a corner, how many rings have turned onto the side arm; 0 for the
+/// default split (design.md 4.2).
+/// </param>
+public sealed record PanelPosition(PanelDock Dock, double HorizontalRatio, double VerticalRatio, string? DisplayId, bool Reversed = false, int Down = 0)
 {
     /// <summary>First run: docked right, vertically centred, on the primary display.</summary>
     public static PanelPosition Default { get; } = new(PanelDock.Right, 1, 0.5, null);
@@ -122,6 +126,119 @@ public static class PanelLayout
             _ => PanelDock.Floating,
         };
     }
+
+    /// <summary>
+    /// How far the pointer moves into a corner for each ring that turns it,
+    /// in DIPs along the strip's path (see <see cref="ChainDockFor"/>).
+    /// </summary>
+    public const double ChainStep = 72;
+
+    /// <summary>
+    /// How far past a turning point the pointer must go before a ring turns
+    /// back, so a hand resting on the point does not make the strip flicker.
+    /// </summary>
+    public const double ChainHold = 8;
+
+    /// <summary>
+    /// What a strip of <paramref name="rings"/> carried by the pointer fuses
+    /// to, with the rings turning a corner one at a time (design.md 4.2, user
+    /// 2026-10-15). Near an edge the strip is a chain along the edges' path:
+    /// the pointer's place on that path is its distance to the side edge minus
+    /// its distance to the top or bottom edge, and it holds the chain by its
+    /// middle. Every ring past the corner turns onto the side arm, the last
+    /// ring first: none is the top or bottom edge, all of them the side, and
+    /// between them an L with <c>Down</c> rings on the side arm. Away from
+    /// every edge the strip floats. <paramref name="previous"/>, the shape
+    /// shown now, is kept until the pointer is <see cref="ChainHold"/> past a
+    /// turning point.
+    /// </summary>
+    public static (PanelDock Dock, int Down) ChainDockFor(
+        double pointerX,
+        double pointerY,
+        Box workArea,
+        int rings,
+        (PanelDock Dock, int Down)? previous = null)
+    {
+        var toLeft = pointerX - workArea.X;
+        var toRight = workArea.Right - pointerX;
+        var toTop = pointerY - workArea.Y;
+        var toBottom = workArea.Bottom - pointerY;
+        var left = toLeft < toRight;
+        var top = toTop < toBottom;
+        var side = left ? toLeft : toRight;
+        var end = top ? toTop : toBottom;
+
+        if (side > EdgeReach && end > EdgeReach)
+        {
+            return (PanelDock.Floating, 0);
+        }
+
+        var count = Math.Max(rings, 1);
+        var along = (side - end) / ChainStep + (count - 1) / 2.0;
+        var down = Turned(along, count);
+
+        if (previous is { } shown && TurnedIn(shown.Dock, shown.Down, count, left, top) is { } was)
+        {
+            var fewest = Turned(along + ChainHold / ChainStep, count);
+            var most = Turned(along - ChainHold / ChainStep, count);
+            if (was >= fewest && was <= most)
+            {
+                down = was;
+            }
+        }
+
+        if (down == 0)
+        {
+            return (top ? PanelDock.Top : PanelDock.Bottom, 0);
+        }
+
+        if (down == count)
+        {
+            return (left ? PanelDock.Left : PanelDock.Right, 0);
+        }
+
+        return (CornerAt(left, top), down);
+    }
+
+    // Ring i sits at along - i on the path; those below zero have turned.
+    private static int Turned(double along, int count) =>
+        Math.Clamp(count - 1 - (int)Math.Floor(along), 0, count);
+
+    private static PanelDock CornerAt(bool left, bool top) => (left, top) switch
+    {
+        (true, true) => PanelDock.TopLeft,
+        (true, false) => PanelDock.BottomLeft,
+        (false, true) => PanelDock.TopRight,
+        _ => PanelDock.BottomRight,
+    };
+
+    /// <summary>
+    /// A shown shape as rings turned at this corner: its top or bottom edge
+    /// none, its side all, its L the rings on the side arm; null for a shape
+    /// that belongs to another corner.
+    /// </summary>
+    private static int? TurnedIn(PanelDock dock, int down, int count, bool left, bool top)
+    {
+        if (dock == (top ? PanelDock.Top : PanelDock.Bottom))
+        {
+            return 0;
+        }
+
+        if (dock == (left ? PanelDock.Left : PanelDock.Right))
+        {
+            return count;
+        }
+
+        return dock == CornerAt(left, top) ? CornerDown(count, down) : null;
+    }
+
+    /// <summary>
+    /// The rings on a corner's side arm: <paramref name="down"/> when it
+    /// leaves at least one on each arm, otherwise half of them, rounded down
+    /// (two rings: one; three: one).
+    /// </summary>
+    public static int CornerDown(int rings, int down) =>
+        down >= 1 && down <= rings - 1 ? down : rings / 2;
 
     /// <summary>The left edge of a strip docked to a side of a work area.</summary>
     public static double DockedX(PanelDock side, Box workArea, double railWidth) => IsLeft(side)

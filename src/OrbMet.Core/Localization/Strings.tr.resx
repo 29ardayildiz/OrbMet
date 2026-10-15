@@ -102,6 +102,15 @@
   <data name="ClaudeAwaiting" xml:space="preserve">
     <value>Claude Code'dan veri bekleniyor. Bağlı değilse sağ tık menüsündeki Bağlantılar'dan bağlayabilirsin.</value>
   </data>
+  <data name="AntigravityNotRunning" xml:space="preserve">
+    <value>Antigravity açıkken okunur.</value>
+  </data>
+  <data name="AntigravityNotAnswering" xml:space="preserve">
+    <value>Antigravity açık ama yanıt vermiyor.</value>
+  </data>
+  <data name="NotStarted" xml:space="preserve">
+    <value>Henüz başlamadı</value>
+  </data>
   <data name="AwaitingUsage" xml:space="preserve">
     <value>Yeni kullanım verisi bekleniyor.</value>
   </data>

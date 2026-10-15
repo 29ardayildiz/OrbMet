@@ -228,4 +228,82 @@ public class PanelPlacementTests
         File.WriteAllText(path, """{ "Dock": 42, "HorizontalRatio": 0, "VerticalRatio": 0 }""");
         Assert.Equal(PanelPosition.Default, store.Load());
     }
+
+    [Theory]
+    // Carried along the top towards the right corner, 40 DIP below the top:
+    // Antigravity turns first, then Codex.
+    [InlineData(1400, 40, PanelDock.Top, 0)]
+    [InlineData(1920 - 100, 40, PanelDock.TopRight, 1)]
+    [InlineData(1920 - 30, 40, PanelDock.TopRight, 2)]
+    // Pushed into the corner, Claude turns too and the strip is on the side.
+    [InlineData(1920 - 5, 130, PanelDock.Right, 0)]
+    // Up the right side the same steps run backwards.
+    [InlineData(1920 - 40, 500, PanelDock.Right, 0)]
+    [InlineData(1920 - 40, 70, PanelDock.TopRight, 2)]
+    [InlineData(1920 - 40, 20, PanelDock.TopRight, 1)]
+    // Every corner, and away from the edges.
+    [InlineData(100, 30, PanelDock.TopLeft, 1)]
+    [InlineData(30, 1032 - 60, PanelDock.BottomLeft, 2)]
+    [InlineData(1920 - 60, 1032 - 40, PanelDock.BottomRight, 1)]
+    [InlineData(900, 500, PanelDock.Floating, 0)]
+    public void ThreeRingsTurnACornerOneAtATime(double x, double y, PanelDock dock, int down)
+    {
+        Assert.Equal((dock, down), PanelLayout.ChainDockFor(x, y, Area, 3));
+    }
+
+    [Theory]
+    [InlineData(1400, 40, PanelDock.Top, 0)]
+    [InlineData(1920 - 60, 40, PanelDock.TopRight, 1)]
+    [InlineData(1920 - 40, 300, PanelDock.Right, 0)]
+    public void TwoRingsMakeTheOneLTheyAlwaysDid(double x, double y, PanelDock dock, int down)
+    {
+        Assert.Equal((dock, down), PanelLayout.ChainDockFor(x, y, Area, 2));
+    }
+
+    [Fact]
+    public void OneRingNeverMakesAnL()
+    {
+        Assert.Equal((PanelDock.Top, 0), PanelLayout.ChainDockFor(1920 - 60, 20, Area, 1));
+        Assert.Equal((PanelDock.Right, 0), PanelLayout.ChainDockFor(1920 - 20, 60, Area, 1));
+    }
+
+    [Fact]
+    public void AHandRestingOnATurningPointDoesNotFlicker()
+    {
+        // At y 40 the last ring turns when the pointer is 112 DIP from the right.
+        Assert.Equal((PanelDock.Top, 0), PanelLayout.ChainDockFor(1920 - 114, 40, Area, 3));
+        Assert.Equal((PanelDock.TopRight, 1), PanelLayout.ChainDockFor(1920 - 110, 40, Area, 3));
+
+        // Just over the point, each keeps what is shown; well past it, it changes.
+        Assert.Equal((PanelDock.TopRight, 1), PanelLayout.ChainDockFor(1920 - 114, 40, Area, 3, (PanelDock.TopRight, 1)));
+        Assert.Equal((PanelDock.Top, 0), PanelLayout.ChainDockFor(1920 - 110, 40, Area, 3, (PanelDock.Top, 0)));
+        Assert.Equal((PanelDock.Top, 0), PanelLayout.ChainDockFor(1920 - 125, 40, Area, 3, (PanelDock.TopRight, 1)));
+    }
+
+    [Fact]
+    public void ACornerSplitIsKeptOnlyWhenItLeavesARingOnEachArm()
+    {
+        Assert.Equal(2, PanelLayout.CornerDown(3, 2));
+        Assert.Equal(1, PanelLayout.CornerDown(3, 0));
+        Assert.Equal(1, PanelLayout.CornerDown(3, 3));
+        Assert.Equal(1, PanelLayout.CornerDown(2, 5));
+    }
+
+    [Fact]
+    public void TheCornerSplitIsRemembered()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"orbmet-test-{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new PanelPositionStore(path);
+            var position = new PanelPosition(PanelDock.TopRight, 1, 0, null, Down: 2);
+
+            Assert.True(store.Save(position));
+            Assert.Equal(position, store.Load());
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

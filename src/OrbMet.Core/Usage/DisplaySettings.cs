@@ -36,6 +36,8 @@ public sealed record DisplaySettings
 
     public RingColour CodexColour { get; init; } = RingColour.Green;
 
+    public RingColour AntigravityColour { get; init; } = RingColour.Green;
+
     /// <summary>A docked strip folds to a sliver at the screen edge while the pointer is elsewhere.</summary>
     public bool CollapseWhenIdle { get; init; }
 
@@ -55,11 +57,20 @@ public sealed record DisplaySettings
 
     public bool HideCodex { get; init; }
 
+    public bool HideAntigravity { get; init; }
+
     [JsonIgnore]
     public IReadOnlySet<ProviderId> Hidden => new HashSet<ProviderId>(
-        new[] { (ProviderId.ClaudeCode, HideClaude), (ProviderId.Codex, HideCodex) }
+        new[] { (ProviderId.ClaudeCode, HideClaude), (ProviderId.Codex, HideCodex), (ProviderId.Antigravity, HideAntigravity) }
             .Where(entry => entry.Item2)
             .Select(entry => entry.Item1));
+
+    public DisplaySettings WithHidden(ProviderId providerId, bool hide) => providerId switch
+    {
+        ProviderId.Codex => this with { HideCodex = hide },
+        ProviderId.Antigravity => this with { HideAntigravity = hide },
+        _ => this with { HideClaude = hide },
+    };
 
     /// <summary>The strip moves to whichever display the pointer settles on.</summary>
     public bool FollowPointer { get; init; }
@@ -67,11 +78,19 @@ public sealed record DisplaySettings
     /// <summary>A dot circles a ring while that agent is mid-turn, read from the tail of its session files.</summary>
     public bool ShowActivity { get; init; }
 
-    public RingColour ColourFor(ProviderId providerId) =>
-        providerId == ProviderId.Codex ? CodexColour : ClaudeColour;
+    public RingColour ColourFor(ProviderId providerId) => providerId switch
+    {
+        ProviderId.Codex => CodexColour,
+        ProviderId.Antigravity => AntigravityColour,
+        _ => ClaudeColour,
+    };
 
-    public DisplaySettings WithColour(ProviderId providerId, RingColour colour) =>
-        providerId == ProviderId.Codex ? this with { CodexColour = colour } : this with { ClaudeColour = colour };
+    public DisplaySettings WithColour(ProviderId providerId, RingColour colour) => providerId switch
+    {
+        ProviderId.Codex => this with { CodexColour = colour },
+        ProviderId.Antigravity => this with { AntigravityColour = colour },
+        _ => this with { ClaudeColour = colour },
+    };
 }
 
 /// <summary>

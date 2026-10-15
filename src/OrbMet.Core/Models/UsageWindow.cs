@@ -29,4 +29,10 @@ public sealed record UsageWindow
     public DateTimeOffset? ResetsAtUtc { get; init; }
 
     public ExhaustionEvidence ExhaustionEvidence { get; init; } = ExhaustionEvidence.Unknown;
+
+    /// <summary>
+    /// Nothing has been used in this window yet, so it has not started and
+    /// has no real reset time; one the provider sends then is left out.
+    /// </summary>
+    public bool NotStarted { get; init; }
 }

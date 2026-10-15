@@ -206,6 +206,16 @@ public sealed class UsageText
     }
 
     /// <summary>
+    /// The card's reset line for a window: "Not started yet" while nothing is
+    /// used in it, otherwise <see cref="ResetWithCountdown"/>.
+    /// </summary>
+    public string ResetLine(UsageWindow window, DateTimeOffset nowUtc, TimeZoneInfo zone)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+        return window.NotStarted ? _text["NotStarted"] : ResetWithCountdown(window.ResetsAtUtc, nowUtc, zone);
+    }
+
+    /// <summary>
     /// "Plan: Plus" for the Connections window, or null when the provider did
     /// not report a plan. The reported name is only capitalised, never mapped,
     /// and invariantly so the English "individual" does not become "İndividual".

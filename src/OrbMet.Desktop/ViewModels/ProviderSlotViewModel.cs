@@ -291,7 +291,7 @@ public sealed class ProviderSlotViewModel : ObservableObject
         var text = Localizer.Instance.Usage;
         var title = text.LimitTitle(window, DisplayName);
         var expired = UsageText.IsPast(window.ResetsAtUtc, nowUtc);
-        var resetText = text.ResetWithCountdown(window.ResetsAtUtc, nowUtc, zone);
+        var resetText = text.ResetLine(window, nowUtc, zone);
 
         // A window whose reset has passed belongs to the old period; its value
         // is hidden rather than shown as the new period's usage.
@@ -352,10 +352,14 @@ public sealed class ProviderSlotViewModel : ObservableObject
                     : words["SignInRequired"];
             case ConnectionState.Unsupported:
                 return words["Unsupported"];
+            case ConnectionState.Error when snapshot.ErrorCode == "antigravity-not-answering":
+                return words["AntigravityNotAnswering"];
             case ConnectionState.Error:
                 return words["CouldNotRead"];
             case ConnectionState.AwaitingData when snapshot.ErrorCode == "claude-no-capture":
                 return words["ClaudeAwaiting"];
+            case ConnectionState.AwaitingData when snapshot.ErrorCode == "antigravity-not-running":
+                return words["AntigravityNotRunning"];
             case ConnectionState.AwaitingData:
                 return words["AwaitingUsage"];
         }

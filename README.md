@@ -2,7 +2,7 @@
 
 A small Windows panel that shows how much of your **Claude Code** and **Codex**
 usage limits you have used, so you can see it at a glance while you work in
-the terminal.
+the terminal. It shows **Antigravity**'s limits too, if you have it.
 
 <p align="center"><img src="docs/screenshot.png" width="378" alt="The OrbMet strip with the Claude Code card open"></p>
 
@@ -18,6 +18,10 @@ starts to matter: green below 50%, yellow below 75%, red above.
 - Shows only the providers you have: with Claude Code alone you see one
   ring. A provider you install later appears by itself; one you have but do
   not want can be hidden under **Appearance**, and is then not read at all.
+- Antigravity (or Antigravity IDE) gets a ring of its own when it is
+  installed: its Gemini and its Claude and GPT allowances, each with a 5-hour
+  and a weekly limit, with the fuller group on the ring. These figures exist
+  only inside Antigravity, so they are read while it is open.
 - A thin outer arc shows how much of the limit's window has passed, so you
   can see at a glance whether you are ahead of the clock.
 - Under **Appearance**: show what is left instead of what is used, pick each
@@ -54,6 +58,7 @@ starts to matter: green below 50%, yellow below 75%, red above.
 
 - Windows 10 or 11, x64
 - [Claude Code](https://docs.claude.com/en/docs/claude-code), [Codex CLI](https://github.com/openai/codex), or both
+- Optionally [Antigravity](https://antigravity.google) or Antigravity IDE
 
 ## Install
 
@@ -97,6 +102,18 @@ response. Good to know:
 - If you move the OrbMet folder, the Connections window says so and offers
   **Reconnect**.
 
+### Antigravity
+
+Nothing to set up. Antigravity keeps its limits in a small server of its own
+that runs while Antigravity is open, listening only on your own computer
+(`127.0.0.1`). OrbMet finds that server, asks it for the quota summary every
+two minutes and when you click the ring, and shows **Read while Antigravity is
+open** when it is closed. Until you use a limit, its card line says **Not
+started yet**: Antigravity has no reset time for it then.
+
+The address `RetrieveUserQuotaSummary` that OrbMet asks is Antigravity's own,
+not a documented API, so a new Antigravity version could change it.
+
 ## Privacy
 
 OrbMet sends nothing about you or your usage anywhere. Its one network
@@ -114,7 +131,12 @@ request of its own is the update check:
   and a one-way hash of the session id, in `%LOCALAPPDATA%\OrbMet`, and
   discards the rest.
 - Codex usage comes from `codex app-server` and is kept in memory.
-- Credentials are never read. Prompts and transcripts are never stored.
+- Antigravity usage comes from Antigravity's own server on `127.0.0.1` and is
+  kept in memory. To be let in, OrbMet reads the one-time code Antigravity
+  gives that server when it starts (on the server's command line) and sends
+  it back to that server only. The code is not your Google sign-in, changes
+  every time Antigravity starts, and is never stored or logged.
+- Account credentials are never read. Prompts and transcripts are never stored.
 - Transcripts are read only if you turn on **Show when an agent is working**
   (off by default). Then, every few seconds, OrbMet opens the last 128 KB of
   the session files Claude Code and Codex wrote in the past five minutes
@@ -167,8 +189,8 @@ Provider marks come from [Lobe Icons](https://github.com/lobehub/lobe-icons)
 (MIT). Third-party licences are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Claude and OpenAI names and marks belong to their owners. OrbMet is not
-affiliated with or endorsed by Anthropic or OpenAI.
+Claude, OpenAI and Antigravity names and marks belong to their owners. OrbMet
+is not affiliated with or endorsed by Anthropic, OpenAI or Google.
 
 ## License
 

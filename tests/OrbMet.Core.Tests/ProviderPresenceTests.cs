@@ -16,21 +16,36 @@ public class ProviderPresenceTests
     }
 
     [Fact]
-    public void BothInstalledAreShownInOrder()
+    public void EveryInstalledOneIsShownInOrder()
     {
-        Assert.Equal(ProviderPresence.All, ProviderPresence.Visible(Set(ProviderId.Codex, ProviderId.ClaudeCode), Set()));
+        Assert.Equal(ProviderPresence.Main, ProviderPresence.Visible(Set(ProviderId.Codex, ProviderId.ClaudeCode), Set()));
+        Assert.Equal(
+            new[] { ProviderId.ClaudeCode, ProviderId.Codex, ProviderId.Antigravity },
+            ProviderPresence.Visible(Set(ProviderId.Antigravity, ProviderId.Codex, ProviderId.ClaudeCode), Set()));
     }
 
     [Fact]
     public void WithNeitherInstalledBothAreShownSoTheStripSaysWhatIsMissing()
     {
-        Assert.Equal(ProviderPresence.All, ProviderPresence.Visible(Set(), Set()));
+        Assert.Equal(ProviderPresence.Main, ProviderPresence.Visible(Set(), Set()));
+    }
+
+    [Fact]
+    public void AntigravityIsShownOnlyWhenInstalled()
+    {
+        Assert.Equal(new[] { ProviderId.Antigravity }, ProviderPresence.Visible(Set(ProviderId.Antigravity), Set()));
+        Assert.DoesNotContain(ProviderId.Antigravity, ProviderPresence.Visible(Set(ProviderId.ClaudeCode), Set()));
+
+        // Antigravity installed but hidden, nothing else: the strip falls back to Claude Code and Codex.
+        Assert.Equal(ProviderPresence.Main, ProviderPresence.Visible(Set(ProviderId.Antigravity), Set(ProviderId.Antigravity)));
     }
 
     [Fact]
     public void AHiddenProviderIsNotShownEvenWhenInstalled()
     {
-        Assert.Equal(new[] { ProviderId.Codex }, ProviderPresence.Visible(ProviderPresence.All.ToHashSet(), Set(ProviderId.ClaudeCode)));
+        Assert.Equal(
+            new[] { ProviderId.Codex, ProviderId.Antigravity },
+            ProviderPresence.Visible(ProviderPresence.All.ToHashSet(), Set(ProviderId.ClaudeCode)));
     }
 
     [Fact]
@@ -43,7 +58,7 @@ public class ProviderPresenceTests
     [Fact]
     public void TheStripIsNeverEmpty()
     {
-        Assert.Equal(ProviderPresence.All, ProviderPresence.Visible(Set(), Set(ProviderId.ClaudeCode, ProviderId.Codex)));
+        Assert.Equal(ProviderPresence.Main, ProviderPresence.Visible(Set(), Set(ProviderId.ClaudeCode, ProviderId.Codex)));
     }
 
     [Fact]
@@ -53,6 +68,18 @@ public class ProviderPresenceTests
 
         Assert.Equal(Set(ProviderId.Codex), settings.Hidden);
         Assert.Empty(new DisplaySettings().Hidden);
+        Assert.Equal(Set(ProviderId.Codex, ProviderId.Antigravity), settings.WithHidden(ProviderId.Antigravity, true).Hidden);
+        Assert.Empty(settings.WithHidden(ProviderId.Codex, false).Hidden);
+    }
+
+    [Fact]
+    public void AntigravityHasItsOwnRingColour()
+    {
+        var settings = new DisplaySettings().WithColour(ProviderId.Antigravity, RingColour.Purple);
+
+        Assert.Equal(RingColour.Purple, settings.ColourFor(ProviderId.Antigravity));
+        Assert.Equal(RingColour.Green, settings.ColourFor(ProviderId.ClaudeCode));
+        Assert.Equal(RingColour.Green, settings.ColourFor(ProviderId.Codex));
     }
 
     [Fact]

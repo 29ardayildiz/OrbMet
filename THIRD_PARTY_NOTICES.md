@@ -6,6 +6,7 @@ OrbMet bundles provider marks derived from [Lobe Icons](https://github.com/lobeh
 
 - `src/OrbMet.Desktop/Assets/Marks/claude.svg`
 - `src/OrbMet.Desktop/Assets/Marks/openai.svg`
+- `src/OrbMet.Desktop/Assets/Marks/antigravity.svg`
 
 Lobe Icons is distributed under the MIT License:
 
@@ -33,7 +34,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-The Claude and OpenAI names and marks remain the property of their respective
+The Claude, OpenAI and Antigravity names and marks remain the property of their respective
 owners. Their inclusion identifies the services OrbMet reads usage from and
 does not imply endorsement.
 

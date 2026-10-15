@@ -44,6 +44,8 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
 
         Claude = new ProviderSlotViewModel(ProviderId.ClaudeCode, "Claude Code", "claude");
         Codex = new ProviderSlotViewModel(ProviderId.Codex, "Codex", "openai");
+        Antigravity = new ProviderSlotViewModel(ProviderId.Antigravity, "Antigravity", "antigravity");
+        All = new[] { Claude, Codex, Antigravity };
         Providers = new ObservableCollection<ProviderSlotViewModel>();
 
         // A provider the user hid is never read (design.md 4.4).
@@ -82,7 +84,7 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
     private bool ShowVisibleProviders()
     {
         var visible = ProviderPresence.Visible(_installed, AppearanceMenu.Current.Hidden)
-            .Select(id => id == ProviderId.Codex ? Codex : Claude)
+            .Select(id => SlotFor(id)!)
             .ToList();
         if (visible.SequenceEqual(Providers))
         {
@@ -102,6 +104,11 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
     public ProviderSlotViewModel Claude { get; }
 
     public ProviderSlotViewModel Codex { get; }
+
+    public ProviderSlotViewModel Antigravity { get; }
+
+    /// <summary>Every provider's slot, shown or not, in strip order.</summary>
+    public IReadOnlyList<ProviderSlotViewModel> All { get; }
 
     public ObservableCollection<ProviderSlotViewModel> Providers { get; }
 
@@ -305,6 +312,7 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
     {
         ProviderId.ClaudeCode => Claude,
         ProviderId.Codex => Codex,
+        ProviderId.Antigravity => Antigravity,
         _ => null,
     };
 

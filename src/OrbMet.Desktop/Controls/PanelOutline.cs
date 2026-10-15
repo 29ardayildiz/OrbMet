@@ -18,8 +18,9 @@ internal sealed record PanelPlan(Size Size, Geometry Outline, IReadOnlyList<Slot
 /// <summary>
 /// The three outlines of design.md 4.2: a vertical capsule on a side or
 /// floating, a horizontal capsule along the top or bottom, and an L in a
-/// corner with the first provider on the horizontal arm and the rest on the
-/// vertical one. The L is laid out for the top-right corner and mirrored.
+/// corner with the first providers on the horizontal arm and those that have
+/// turned the corner on the vertical one. The L is laid out for the top-right
+/// corner and mirrored.
 /// </summary>
 internal static class PanelOutline
 {
@@ -27,13 +28,14 @@ internal static class PanelOutline
     /// The slots run along the outline last to first: bottom to top,
     /// right to left, or in an L from the vertical arm's end to the horizontal's.
     /// </param>
-    public static PanelPlan For(PanelDock dock, int slots, bool reversed = false)
+    /// <param name="down">In a corner, the rings on the side arm (<see cref="PanelLayout.CornerDown"/>).</param>
+    public static PanelPlan For(PanelDock dock, int slots, bool reversed = false, int down = 0)
     {
         var count = Math.Max(slots, 1);
         var plan = PanelLayout.ShapeOf(dock) switch
         {
             PanelShape.Horizontal => Horizontal(count),
-            PanelShape.Corner when count >= 2 => Corner(count, PanelLayout.IsLeft(dock), PanelLayout.IsBottom(dock)),
+            PanelShape.Corner when count >= 2 => Corner(count, PanelLayout.CornerDown(count, down), PanelLayout.IsLeft(dock), PanelLayout.IsBottom(dock)),
             _ => Vertical(count),
         };
         return reversed ? plan with { Slots = plan.Slots.Reverse().ToList() } : plan;
@@ -66,23 +68,29 @@ internal static class PanelOutline
 
     /// <summary>
     /// The L for the top-right corner, then mirrored: a horizontal arm along
-    /// the top holding the first slot, the corner block, and a vertical arm
-    /// down the side holding the rest.
+    /// the top holding the first slots, the corner block, and a vertical arm
+    /// down the side holding the last <paramref name="down"/>, the ones that
+    /// have turned the corner (design.md 4.2).
     /// </summary>
-    private static PanelPlan Corner(int count, bool left, bool bottom)
+    private static PanelPlan Corner(int count, int down, bool left, bool bottom)
     {
         var t = PanelMetrics.StripWidth;
-        var w = PanelMetrics.BesideEndPadding + PanelMetrics.BesideSlotWidth + PanelMetrics.CornerArmGap + t;
-        var h = t + PanelMetrics.CornerArmGap + (count - 1) * PanelMetrics.SlotHeight + (count - 2) * PanelMetrics.SlotSpacing + PanelMetrics.EndPadding;
+        var across = count - down;
+        var w = PanelMetrics.BesideEndPadding + across * PanelMetrics.BesideSlotWidth + (across - 1) * PanelMetrics.BesideSlotSpacing
+            + PanelMetrics.CornerArmGap + t;
+        var h = t + PanelMetrics.CornerArmGap + down * PanelMetrics.SlotHeight + (down - 1) * PanelMetrics.SlotSpacing + PanelMetrics.EndPadding;
         var size = new Size(w, h);
 
-        var frames = new List<SlotFrame>
+        var frames = new List<SlotFrame>();
+        for (var k = 0; k < across; k++)
         {
-            new(new Rect(PanelMetrics.BesideEndPadding, (t - PanelMetrics.RingDiameter) / 2, PanelMetrics.BesideSlotWidth, PanelMetrics.RingDiameter), PercentBeside: true),
-        };
-        for (var k = 1; k < count; k++)
+            var x = PanelMetrics.BesideEndPadding + k * (PanelMetrics.BesideSlotWidth + PanelMetrics.BesideSlotSpacing);
+            frames.Add(new SlotFrame(new Rect(x, (t - PanelMetrics.RingDiameter) / 2, PanelMetrics.BesideSlotWidth, PanelMetrics.RingDiameter), PercentBeside: true));
+        }
+
+        for (var k = 0; k < down; k++)
         {
-            var y = t + PanelMetrics.CornerArmGap + (k - 1) * (PanelMetrics.SlotHeight + PanelMetrics.SlotSpacing);
+            var y = t + PanelMetrics.CornerArmGap + k * (PanelMetrics.SlotHeight + PanelMetrics.SlotSpacing);
             frames.Add(new SlotFrame(new Rect(w - t, y, t, PanelMetrics.SlotHeight), PercentBeside: false));
         }
 

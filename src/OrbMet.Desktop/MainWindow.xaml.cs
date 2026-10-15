@@ -7,6 +7,7 @@ using System.Windows.Threading;
 using Microsoft.Win32;
 using OrbMet.Core.Placement;
 using OrbMet.Core.Providers;
+using OrbMet.Core.Providers.Antigravity;
 using OrbMet.Core.Providers.Claude;
 using OrbMet.Core.Providers.Codex;
 using OrbMet.Core.Storage;
@@ -31,6 +32,7 @@ public partial class MainWindow : Window
     private readonly PanelPositionStore _positionStore;
     private PanelPosition _position;
     private PanelDock _shownDock;
+    private int _shownDown;
     private bool _reversed;
     private PanelPlan _plan = null!;
     private readonly List<SlotView> _slotViews = new();
@@ -98,6 +100,7 @@ public partial class MainWindow : Window
         {
             new ClaudeCaptureProvider(paths.ClaudeCapturesDirectory),
             new CodexUsageProvider(),
+            new AntigravityUsageProvider(),
         })
         {
             RingChoice = RingChoiceMenu.Current,
@@ -113,7 +116,7 @@ public partial class MainWindow : Window
         RingChoiceMenu.Changed += _viewModel.UseRingChoice;
 
         BuildSlotViews();
-        UsePlan(_shownDock, _reversed);
+        UsePlan(_shownDock, _reversed, _position.Down);
         ShowPlanAt(default, centre: true);
 
         _tray = new TrayIcon(
@@ -122,7 +125,7 @@ public partial class MainWindow : Window
             openConnections: OpenConnections,
             refresh: () => _ = _viewModel.RefreshAsync(showProgress: true),
             exit: ExitApplication);
-        foreach (var slot in new[] { _viewModel.Claude, _viewModel.Codex })
+        foreach (var slot in _viewModel.All)
         {
             slot.PropertyChanged += (_, e) =>
             {
@@ -222,7 +225,7 @@ public partial class MainWindow : Window
         _rebuildPending = false;
         HideCard();
         BuildSlotViews();
-        UsePlan(_position.Dock, _position.Reversed);
+        UsePlan(_position.Dock, _position.Reversed, _position.Down);
         ShowPlanAt(_origin, centre: true);
         Place();
         ShowUsageInTray();
@@ -268,7 +271,7 @@ public partial class MainWindow : Window
         }
 
         var (area, _) = Displays.For(_position.DisplayId, this);
-        UsePlan(_position.Dock, _position.Reversed);
+        UsePlan(_position.Dock, _position.Reversed, _position.Down);
         var (x, y) = PanelLayout.RailOrigin(_position, area, _plan.Size.Width, _plan.Size.Height);
         ShowPlanAt(new Point(x, y), centre: true);
         if (_collapsed)
@@ -519,11 +522,11 @@ public partial class MainWindow : Window
         Place();
     }
 
-    /// <summary>The largest outline with <see cref="PanelMetrics.WindowRoom"/> on every side.</summary>
+    /// <summary>The largest outline, every corner split included, with <see cref="PanelMetrics.WindowRoom"/> on every side.</summary>
     private static Size RoomyWindowSize(int slots)
     {
-        var sizes = new[] { PanelDock.Right, PanelDock.Top, PanelDock.TopRight }
-            .Select(dock => PanelOutline.For(dock, slots).Size)
+        var sizes = new[] { PanelOutline.For(PanelDock.Right, slots).Size, PanelOutline.For(PanelDock.Top, slots).Size }
+            .Concat(Enumerable.Range(1, Math.Max(slots - 1, 1)).Select(down => PanelOutline.For(PanelDock.TopRight, slots, down: down).Size))
             .ToList();
         return new Size(
             sizes.Max(size => size.Width) + 2 * PanelMetrics.WindowRoom,
@@ -535,11 +538,12 @@ public partial class MainWindow : Window
     /// where each provider sits. Ends any change of outline in progress;
     /// nothing on screen changes until it is shown.
     /// </summary>
-    private void UsePlan(PanelDock dock, bool reversed)
+    private void UsePlan(PanelDock dock, bool reversed, int down)
     {
         StopReshape();
-        _plan = PanelOutline.For(dock, SlotCount, reversed);
+        _plan = PanelOutline.For(dock, SlotCount, reversed, down);
         _shownDock = dock;
+        _shownDown = PanelLayout.ShapeOf(dock) == PanelShape.Corner ? PanelLayout.CornerDown(SlotCount, down) : 0;
         _reversed = reversed;
     }
 
@@ -731,14 +735,15 @@ public partial class MainWindow : Window
             HideCard();
         }
 
+        // Rings turn a corner one at a time as the strip is pushed into it.
         var (area, displayId) = Displays.At(pointer, this);
-        var dock = PanelLayout.DockFor(pointer.X, pointer.Y, area);
+        var (dock, down) = PanelLayout.ChainDockFor(pointer.X, pointer.Y, area, SlotCount, (_shownDock, _shownDown));
         StripPose? from = null;
-        if (dock != _shownDock)
+        if (dock != _shownDock || down != _shownDown)
         {
             from = ShownPose();
             var before = _plan.Size;
-            UsePlan(dock, _reversed);
+            UsePlan(dock, _reversed, down);
 
             // A new outline has nothing in common with where the old one was
             // held, so it is carried by its middle from here on.
@@ -759,9 +764,9 @@ public partial class MainWindow : Window
         if (from is not null)
         {
             var arrangements = new[] { false, true }
-                .Select(reversed => StripPose.Of(PanelOutline.For(dock, SlotCount, reversed), _origin).Centres())
+                .Select(reversed => StripPose.Of(PanelOutline.For(dock, SlotCount, reversed, down), _origin).Centres())
                 .ToList();
-            UsePlan(dock, PanelLayout.NearestArrangement(from.Centres(), arrangements) == 1);
+            UsePlan(dock, PanelLayout.NearestArrangement(from.Centres(), arrangements) == 1, down);
         }
 
         // The strip stretches into its new outline; while it does, each frame
@@ -790,7 +795,7 @@ public partial class MainWindow : Window
         }
 
         var (horizontal, vertical) = PanelLayout.Ratios(dock, x, y, area, size.Width, size.Height);
-        _dragPosition = new PanelPosition(dock, horizontal, vertical, displayId, _reversed);
+        _dragPosition = new PanelPosition(dock, horizontal, vertical, displayId, _reversed, _shownDown);
     }
 
     private void OnRelease(object sender, MouseButtonEventArgs e)

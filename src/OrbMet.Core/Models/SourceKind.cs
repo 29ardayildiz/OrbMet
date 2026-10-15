@@ -5,4 +5,5 @@ public enum SourceKind
 {
     ClaudeStatusLine,
     CodexAppServer,
+    AntigravityLanguageServer,
 }
