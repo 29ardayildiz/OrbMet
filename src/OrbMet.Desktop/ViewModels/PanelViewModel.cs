@@ -179,6 +179,16 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>Shows another limit in the rings at once; later reads pick by it too.</summary>
+    public void UseRingChoice(RingChoice choice)
+    {
+        _coordinator.RingChoice = choice;
+        foreach (var slot in Providers)
+        {
+            slot.Reselect(choice);
+        }
+    }
+
     /// <summary>
     /// Whether Claude is connected, and whether it runs a helper that is gone;
     /// cheap, a read of its settings file. Returns what was read, or null.

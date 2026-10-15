@@ -252,4 +252,16 @@
   <data name="StartWithWindows" xml:space="preserve">
     <value>Windows açılışında başlat</value>
   </data>
+  <data name="RingShows" xml:space="preserve">
+    <value>Halkada göster</value>
+  </data>
+  <data name="RingFiveHour" xml:space="preserve">
+    <value>5 saatlik limit</value>
+  </data>
+  <data name="RingWeekly" xml:space="preserve">
+    <value>Haftalık limit</value>
+  </data>
+  <data name="RingClosest" xml:space="preserve">
+    <value>Dolmaya en yakın limit</value>
+  </data>
 </root>

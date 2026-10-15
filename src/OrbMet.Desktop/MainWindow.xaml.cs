@@ -67,8 +67,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        StripMenu.Items.Insert(3, LanguageMenu.Create());
-        StripMenu.Items.Insert(4, StartupMenu.Create());
+        StripMenu.Items.Insert(2, RingChoiceMenu.Create());
+        StripMenu.Items.Insert(4, LanguageMenu.Create());
+        StripMenu.Items.Insert(5, StartupMenu.Create());
         StartupMenu.FollowMove();
 
         var paths = OrbMetPaths.FromEnvironment();
@@ -76,7 +77,10 @@ public partial class MainWindow : Window
         {
             new ClaudeCaptureProvider(paths.ClaudeCapturesDirectory),
             new CodexUsageProvider(),
-        });
+        })
+        {
+            RingChoice = RingChoiceMenu.Current,
+        };
 
         _positionStore = new PanelPositionStore(paths.PanelPositionFile);
         _position = _positionStore.Load();
@@ -85,6 +89,7 @@ public partial class MainWindow : Window
 
         _viewModel = new PanelViewModel(coordinator, () => ReadClaudeLink(paths));
         DataContext = _viewModel;
+        RingChoiceMenu.Changed += _viewModel.UseRingChoice;
 
         foreach (var slot in _viewModel.Providers)
         {
@@ -104,6 +109,19 @@ public partial class MainWindow : Window
             openConnections: OpenConnections,
             refresh: () => _ = _viewModel.RefreshAsync(showProgress: true),
             exit: ExitApplication);
+        foreach (var slot in _viewModel.Providers)
+        {
+            slot.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName is nameof(ProviderSlotViewModel.RingPercent) or nameof(ProviderSlotViewModel.IsExhausted))
+                {
+                    ShowUsageInTray();
+                }
+            };
+        }
+
+        Localizer.Instance.LanguageChanged += (_, _) => ShowUsageInTray();
+        ShowUsageInTray();
 
         _card = new DetailCardWindow();
 
@@ -131,6 +149,22 @@ public partial class MainWindow : Window
     }
 
     private int SlotCount => _viewModel.Providers.Count;
+
+    /// <summary>
+    /// The tray icon shows the fullest ring and its tip lists every provider
+    /// (design.md 3.1). A spent ring counts as the fullest.
+    /// </summary>
+    private void ShowUsageInTray()
+    {
+        var fullest = _viewModel.Providers
+            .Where(slot => slot.RingPercent is not null)
+            .OrderByDescending(slot => slot.IsExhausted ? double.MaxValue : slot.RingPercent)
+            .FirstOrDefault();
+
+        var text = Localizer.Instance.Usage;
+        var lines = _viewModel.Providers.Select(slot => $"{slot.DisplayName}: {text.Percent(slot.RingPercent)}");
+        _tray.ShowUsage(fullest?.RingPercent, fullest?.IsExhausted == true, string.Join("\n", lines.Prepend("OrbMet")));
+    }
 
     /// <summary>
     /// Puts the strip where it was left: on the remembered display, or the

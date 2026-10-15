@@ -19,6 +19,8 @@ internal sealed class TrayIcon : IDisposable
     private readonly NotifyIcon _notifyIcon;
     private readonly Icon _icon;
     private readonly WpfContextMenu _menu;
+    private Icon? _usageIcon;
+    private (int Percent, bool Exhausted)? _shown;
     private bool _disposed;
 
     public TrayIcon(
@@ -38,6 +40,7 @@ internal sealed class TrayIcon : IDisposable
         _menu.Items.Add(Item("OpenDetails", "\uE946", openDetails));
         _menu.Items.Add(Item("Refresh", "\uE72C", refresh));
         _menu.Items.Add(Item("Connections", "\uE71B", openConnections));
+        _menu.Items.Add(RingChoiceMenu.Create());
         _menu.Items.Add(LanguageMenu.Create());
         _menu.Items.Add(StartupMenu.Create());
         _menu.Items.Add(new WpfSeparator());
@@ -62,6 +65,36 @@ internal sealed class TrayIcon : IDisposable
                 _menu.IsOpen = true;
             }
         };
+    }
+
+    /// <summary>
+    /// Shows the fullest ring in the icon, or the plain mark when no ring has
+    /// a reading (design.md 3.1). The icon is drawn again only when what it
+    /// shows changes.
+    /// </summary>
+    public void ShowUsage(double? percent, bool isExhausted, string tooltip)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        // The tray cuts a tip past 127 characters; these are far shorter.
+        _notifyIcon.Text = tooltip.Length > 127 ? tooltip[..127] : tooltip;
+
+        var shown = percent is { } value ? ((int)Math.Round(value), isExhausted) : ((int, bool)?)null;
+        if (shown == _shown)
+        {
+            return;
+        }
+
+        _shown = shown;
+        var previous = _usageIcon;
+        _usageIcon = percent is { } reading
+            ? TrayRing.Render(SystemInformation.SmallIconSize.Width, reading, isExhausted)
+            : null;
+        _notifyIcon.Icon = _usageIcon ?? _icon;
+        previous?.Dispose();
     }
 
     private static WpfMenuItem Item(string textKey, string glyph, Action action)
@@ -120,5 +153,6 @@ internal sealed class TrayIcon : IDisposable
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
         _icon.Dispose();
+        _usageIcon?.Dispose();
     }
 }

@@ -23,6 +23,9 @@ public sealed class UsageCoordinator
 
     public IReadOnlyList<IUsageProvider> Providers => _providers;
 
+    /// <summary>Which limit each reading's ring window is picked by; read on every read.</summary>
+    public RingChoice RingChoice { get; set; }
+
     public async Task<IReadOnlyList<ProviderUsage>> ReadAllAsync(CancellationToken cancellationToken)
     {
         var tasks = _providers.Select(provider => ReadOneAsync(provider, cancellationToken));
@@ -39,7 +42,7 @@ public sealed class UsageCoordinator
         return provider is null ? null : await ReadOneAsync(provider, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<ProviderUsage> ReadOneAsync(IUsageProvider provider, CancellationToken cancellationToken)
+    private async Task<ProviderUsage> ReadOneAsync(IUsageProvider provider, CancellationToken cancellationToken)
     {
         ProviderSnapshot snapshot;
         try
@@ -65,6 +68,6 @@ public sealed class UsageCoordinator
             };
         }
 
-        return new ProviderUsage(snapshot, UsageSelection.SelectRingWindow(snapshot));
+        return new ProviderUsage(snapshot, UsageSelection.SelectRingWindow(snapshot, RingChoice));
     }
 }

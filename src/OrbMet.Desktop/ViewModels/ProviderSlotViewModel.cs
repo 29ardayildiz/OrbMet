@@ -203,6 +203,15 @@ public sealed class ProviderSlotViewModel : ObservableObject
         }
     }
 
+    /// <summary>Picks the ring's window again from the last reading, without reading the provider.</summary>
+    public void Reselect(RingChoice choice)
+    {
+        if (_usage is { } usage)
+        {
+            Apply(usage with { RingWindow = UsageSelection.SelectRingWindow(usage.Snapshot, choice) });
+        }
+    }
+
     /// <summary>Rebuilds the card's time-dependent text against the given moment.</summary>
     public void UpdateDetails(DateTimeOffset nowUtc, TimeZoneInfo zone)
     {

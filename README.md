@@ -13,9 +13,13 @@ starts to matter: green below 50%, yellow below 75%, red above.
 ## Features
 
 - One ring per provider showing its 5-hour limit, as the provider reports it.
+  The menu can switch the rings to the weekly limit, or to whichever limit is
+  closest to running out.
 - Hover a ring to see every limit it reports (5-hour, weekly, per model),
   how much of each is used and when it resets.
 - Click a ring to refresh it.
+- The tray icon is a small copy of the fullest ring; hover it for every
+  provider's figure.
 - Drag the strip to any edge or corner and it docks there, or leave it
   anywhere on screen. It remembers where.
 - Never takes focus from your terminal.

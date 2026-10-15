@@ -276,4 +276,18 @@
     <value>Start with Windows</value>
     <comment>Menu item in the strip and tray menus; a check on the right when on.</comment>
   </data>
+  <data name="RingShows" xml:space="preserve">
+    <value>Ring shows</value>
+    <comment>Submenu in the strip and tray menus: which limit the rings show.</comment>
+  </data>
+  <data name="RingFiveHour" xml:space="preserve">
+    <value>5-hour limit</value>
+  </data>
+  <data name="RingWeekly" xml:space="preserve">
+    <value>Weekly limit</value>
+  </data>
+  <data name="RingClosest" xml:space="preserve">
+    <value>Closest to its limit</value>
+    <comment>Whichever of a provider's limits is the most used.</comment>
+  </data>
 </root>
