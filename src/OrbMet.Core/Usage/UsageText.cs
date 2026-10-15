@@ -169,6 +169,43 @@ public sealed class UsageText
     }
 
     /// <summary>
+    /// The card's reset line with how long is left: "Resets 17:00 · in 2 h
+    /// 14 min". Unknown, or already passed, reads as <see cref="ResetAt"/>.
+    /// </summary>
+    public string ResetWithCountdown(DateTimeOffset? resetsAtUtc, DateTimeOffset nowUtc, TimeZoneInfo zone)
+    {
+        var reset = ResetAt(resetsAtUtc, nowUtc, zone);
+        return resetsAtUtc is { } resetsAt && !IsPast(resetsAtUtc, nowUtc)
+            ? $"{reset} · {Countdown(resetsAt - nowUtc)}"
+            : reset;
+    }
+
+    /// <summary>"in 1 d 15 h", "in 2 h 14 min", "in 14 min", "in under a minute"; a zero part is left out.</summary>
+    public string Countdown(TimeSpan left)
+    {
+        var minutes = (long)Math.Floor(left.TotalMinutes);
+        if (minutes < 1)
+        {
+            return _text["CountdownSoon"];
+        }
+
+        var days = minutes / (24 * 60);
+        var hours = minutes / 60 % 24;
+        var rest = minutes % 60;
+        if (days > 0)
+        {
+            return hours > 0 ? _text.Format("CountdownDaysHoursFormat", days, hours) : _text.Format("CountdownDaysFormat", days);
+        }
+
+        if (hours > 0)
+        {
+            return rest > 0 ? _text.Format("CountdownHoursMinutesFormat", hours, rest) : _text.Format("CountdownHoursFormat", hours);
+        }
+
+        return _text.Format("CountdownMinutesFormat", rest);
+    }
+
+    /// <summary>
     /// "Plan: Plus" for the Connections window, or null when the provider did
     /// not report a plan. The reported name is only capitalised, never mapped,
     /// and invariantly so the English "individual" does not become "İndividual".

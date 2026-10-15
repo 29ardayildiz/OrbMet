@@ -408,4 +408,22 @@
   <data name="OnStripFormat" xml:space="preserve">
     <value>Şeritte {0}</value>
   </data>
+  <data name="CountdownSoon" xml:space="preserve">
+    <value>1 dk içinde</value>
+  </data>
+  <data name="CountdownMinutesFormat" xml:space="preserve">
+    <value>{0} dk sonra</value>
+  </data>
+  <data name="CountdownHoursFormat" xml:space="preserve">
+    <value>{0} sa sonra</value>
+  </data>
+  <data name="CountdownHoursMinutesFormat" xml:space="preserve">
+    <value>{0} sa {1} dk sonra</value>
+  </data>
+  <data name="CountdownDaysFormat" xml:space="preserve">
+    <value>{0} gün sonra</value>
+  </data>
+  <data name="CountdownDaysHoursFormat" xml:space="preserve">
+    <value>{0} gün {1} sa sonra</value>
+  </data>
 </root>

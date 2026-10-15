@@ -4,6 +4,9 @@
 #   OrbMet-<version>-win-x64.zip  the same files to unpack and run, no installer
 #   *.sha256                      SHA-256 of each; OrbMet's updater will not run
 #                                 an installer without its file
+#   winget\<version>\             the winget manifests for this version, for a
+#                                 pull request to microsoft/winget-pkgs once the
+#                                 release is published (the URL points there)
 #
 # Both carry the self-contained build, so no .NET install is needed. The panel
 # and the Claude status line helper are published into one folder, since
@@ -115,3 +118,77 @@ foreach ($file in $setup, $zip) {
     $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
     [System.IO.File]::WriteAllText("$file.sha256", "$hash  $(Split-Path $file -Leaf)`n")
 }
+
+# winget: the three manifests of a multi-file package, pointing at the
+# installer as it will be on this version's GitHub release.
+$id = "ArdaYildiz.OrbMet"
+$schema = "1.10.0"
+$wingetDir = Join-Path $artifacts "winget\$Version"
+if (Test-Path $wingetDir) { Remove-Item $wingetDir -Recurse -Force }
+New-Item -ItemType Directory -Force $wingetDir | Out-Null
+$setupHash = (Get-FileHash $setup -Algorithm SHA256).Hash
+$release = "https://github.com/29ardayildiz/OrbMet/releases"
+$manifests = @{
+    "$id.yaml" = @"
+# yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.$schema.schema.json
+PackageIdentifier: $id
+PackageVersion: $Version
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: $schema
+"@
+    "$id.installer.yaml" = @"
+# yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.$schema.schema.json
+PackageIdentifier: $id
+PackageVersion: $Version
+InstallerType: inno
+Scope: user
+InstallModes:
+- interactive
+- silent
+- silentWithProgress
+UpgradeBehavior: install
+ReleaseDate: $(Get-Date -Format yyyy-MM-dd)
+AppsAndFeaturesEntries:
+- DisplayName: OrbMet
+  Publisher: Arda YILDIZ
+  ProductCode: '{D7931010-D851-43EC-AE6D-7D44F7B54866}_is1'
+Installers:
+- Architecture: x64
+  InstallerUrl: $release/download/v$Version/OrbMet-$Version-setup.exe
+  InstallerSha256: $setupHash
+  ProductCode: '{D7931010-D851-43EC-AE6D-7D44F7B54866}_is1'
+ManifestType: installer
+ManifestVersion: $schema
+"@
+    "$id.locale.en-US.yaml" = @"
+# yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.$schema.schema.json
+PackageIdentifier: $id
+PackageVersion: $Version
+PackageLocale: en-US
+Publisher: Arda YILDIZ
+PublisherUrl: https://github.com/29ardayildiz
+PublisherSupportUrl: https://github.com/29ardayildiz/OrbMet/issues
+PackageName: OrbMet
+PackageUrl: https://github.com/29ardayildiz/OrbMet
+License: MIT
+LicenseUrl: https://github.com/29ardayildiz/OrbMet/blob/main/LICENSE
+ShortDescription: A small Windows panel that shows how much of your Claude Code and Codex usage limits you have used.
+Description: OrbMet sits on the edge of your screen as a black strip with one ring per provider, filled to the share of the 5-hour limit used as Claude Code or Codex reports it. Hover a ring for every limit and when it resets.
+Moniker: orbmet
+Tags:
+- claude
+- claude-code
+- codex
+- usage
+- rate-limit
+- tray
+ReleaseNotesUrl: $release/tag/v$Version
+ManifestType: defaultLocale
+ManifestVersion: $schema
+"@
+}
+foreach ($entry in $manifests.GetEnumerator()) {
+    [System.IO.File]::WriteAllText((Join-Path $wingetDir $entry.Key), $entry.Value.Replace("`r`n", "`n") + "`n")
+}
+Write-Host "winget manifests  $wingetDir"

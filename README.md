@@ -30,10 +30,11 @@ starts to matter: green below 50%, yellow below 75%, red above.
   pointer is on, and show a dot circling a ring while Claude Code or Codex is
   working (see Privacy).
 - Hover a ring to see every limit it reports (5-hour, weekly, per model),
-  how much of each is used and when it resets.
+  how much of each is used, when it resets and how long that is from now.
 - Click a ring to refresh it.
 - The tray icon is a small copy of the fullest ring; hover it for every
-  provider's figure.
+  provider's figure, click it for Details, double-click to show or hide the
+  strip.
 - Optional notifications (off until you pick a threshold in the menu): when a
   limit passes 75, 80, 90 or 95%, when it runs out, when a limit you were
   warned about resets, and when Claude Code gets disconnected or Codex can't
@@ -155,8 +156,9 @@ Release packages:
 powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -Version 0.2.0
 ```
 
-This writes the installer and the zip to `artifacts\`. The installer needs
-[Inno Setup 6](https://jrsoftware.org/isinfo.php)
+This writes the installer and the zip to `artifacts\`, each with a `.sha256`
+file, and the winget manifests for that version to `artifacts\winget\`. The
+installer needs [Inno Setup 6](https://jrsoftware.org/isinfo.php)
 (`winget install JRSoftware.InnoSetup`).
 
 ## Credits

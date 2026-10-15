@@ -109,34 +109,42 @@
                                 </Style>
                             </controls:UsageBar.Style>
                         </controls:UsageBar>
-                        <Grid Margin="0,7,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding UsedText}"
-                                       FontSize="11.5"
-                                       FontWeight="Medium"
-                                       Typography.NumeralAlignment="Tabular">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{StaticResource TextValue}" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsSpent}" Value="True">
-                                                <Setter Property="Foreground" Value="{StaticResource Spent}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding ResetText}"
-                                       Foreground="{StaticResource TextReset}"
-                                       FontSize="11.5"
-                                       Margin="8,0,0,0"
-                                       HorizontalAlignment="Right"
-                                       TextTrimming="CharacterEllipsis" />
-                        </Grid>
+                        <!-- The figure, then the reset and how long until it on a line
+                             of their own, so neither is ever cut short (design.md 7.3). -->
+                        <TextBlock Text="{Binding UsedText}"
+                                   Margin="0,7,0,0"
+                                   FontSize="11.5"
+                                   FontWeight="Medium"
+                                   Typography.NumeralAlignment="Tabular">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource TextValue}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSpent}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource Spent}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding UsedText}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="{Binding ResetText}"
+                                   Foreground="{StaticResource TextReset}"
+                                   FontSize="11.5"
+                                   Margin="0,3,0,0"
+                                   TextTrimming="CharacterEllipsis">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ResetText}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <!-- Only with "Forecast on the card": always marked as a forecast. -->
                         <TextBlock Text="{Binding ForecastText}"
                                    Foreground="{StaticResource TextReset}"

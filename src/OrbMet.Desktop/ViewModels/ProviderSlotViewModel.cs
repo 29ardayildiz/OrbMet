@@ -291,7 +291,7 @@ public sealed class ProviderSlotViewModel : ObservableObject
         var text = Localizer.Instance.Usage;
         var title = text.LimitTitle(window, DisplayName);
         var expired = UsageText.IsPast(window.ResetsAtUtc, nowUtc);
-        var resetText = text.ResetAt(window.ResetsAtUtc, nowUtc, zone);
+        var resetText = text.ResetWithCountdown(window.ResetsAtUtc, nowUtc, zone);
 
         // A window whose reset has passed belongs to the old period; its value
         // is hidden rather than shown as the new period's usage.

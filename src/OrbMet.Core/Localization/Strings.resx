@@ -458,4 +458,22 @@
   <data name="OnStripFormat" xml:space="preserve">
     <value>{0} on the strip</value>
   </data>
+  <data name="CountdownSoon" xml:space="preserve">
+    <value>in under a minute</value>
+  </data>
+  <data name="CountdownMinutesFormat" xml:space="preserve">
+    <value>in {0} min</value>
+  </data>
+  <data name="CountdownHoursFormat" xml:space="preserve">
+    <value>in {0} h</value>
+  </data>
+  <data name="CountdownHoursMinutesFormat" xml:space="preserve">
+    <value>in {0} h {1} min</value>
+  </data>
+  <data name="CountdownDaysFormat" xml:space="preserve">
+    <value>in {0} d</value>
+  </data>
+  <data name="CountdownDaysHoursFormat" xml:space="preserve">
+    <value>in {0} d {1} h</value>
+  </data>
 </root>

@@ -21,6 +21,7 @@ internal sealed class TrayIcon : IDisposable
     private readonly WpfContextMenu _menu;
     private Icon? _usageIcon;
     private Action? _notificationClicked;
+    private readonly System.Windows.Threading.DispatcherTimer _singleClick;
     private (int Percent, bool Exhausted, System.Windows.Media.Brush? Good)? _shown;
     private bool _disposed;
 
@@ -58,7 +59,31 @@ internal sealed class TrayIcon : IDisposable
             Text = "OrbMet",
             Visible = true,
         };
-        _notifyIcon.DoubleClick += (_, _) => togglePanel();
+        // A single click opens Details, a double click shows or hides the
+        // panel (design.md 10). The first click of a double click is held for
+        // the system's double-click time, so it never opens Details too.
+        _singleClick = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(SystemInformation.DoubleClickTime),
+        };
+        _singleClick.Tick += (_, _) =>
+        {
+            _singleClick.Stop();
+            openDetails();
+        };
+        _notifyIcon.MouseClick += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                _singleClick.Stop();
+                _singleClick.Start();
+            }
+        };
+        _notifyIcon.DoubleClick += (_, _) =>
+        {
+            _singleClick.Stop();
+            togglePanel();
+        };
 
         // A right click, and Shift+F10 or the menu key on a selected icon: the
         // shell reports both as a right button release for this icon version.
