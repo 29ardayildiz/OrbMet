@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in OrbMet doesn't work or shows the wrong thing.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Please don't paste tokens, cookies, `auth.json`, `.credentials.json` or the contents of `~/.claude/settings.json` here.
+  - type: input
+    id: version
+    attributes:
+      label: OrbMet version
+      description: Shown in Settings > Apps > Installed apps, or in the file name you downloaded.
+      placeholder: "0.7.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - Installer (setup.exe)
+        - Zip
+        - winget
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Run `winver` if you're not sure.
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+  - type: checkboxes
+    id: providers
+    attributes:
+      label: Which providers does it involve?
+      options:
+        - label: Claude Code
+        - label: Codex
+        - label: Antigravity
+        - label: None, it's the panel itself
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can it be reproduced?
+      placeholder: |
+        1. Dock the strip to the top-left corner
+        2. Hover the Codex ring
+        3. ...
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or anything else
+      description: A screenshot helps a lot. Display scale (100%, 125%, 150%) and the number of monitors are useful for anything about the strip's place or shape.

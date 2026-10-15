@@ -1,8 +1,18 @@
 # OrbMet
 
-A small Windows panel that shows how much of your **Claude Code** and **Codex**
-usage limits you have used, so you can see it at a glance while you work in
-the terminal. It shows **Antigravity**'s limits too, if you have it.
+<p>
+  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/29ardayildiz/OrbMet?color=1f5bcc" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-1f5bcc" alt="Windows 10 and 11">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/29ardayildiz/OrbMet?color=1f5bcc" alt="MIT licence"></a>
+  <a href="../../releases"><img src="https://img.shields.io/github/downloads/29ardayildiz/OrbMet/total?color=1f5bcc" alt="Downloads"></a>
+</p>
+
+See how much of your **Claude Code** and **Codex** limits you've used, right on
+your Windows screen edge, without leaving the terminal. It shows
+**Antigravity**'s limits too, if you have it.
+
+**[Download the installer](../../releases/latest)** (no administrator rights,
+no .NET needed). Free and open source, no account, nothing sent anywhere.
 
 <p align="center"><img src="docs/screenshot.png" width="378" alt="The OrbMet strip with rings for Claude Code, Codex and Antigravity, and the Claude Code card open showing each limit, when it resets and how long that is from now"></p>
 
@@ -70,8 +80,20 @@ Download from [Releases](../../releases). Neither needs .NET installed.
 | `OrbMet-<version>-setup.exe` | Installer. Installs for your user only (no administrator rights), adds a Start menu shortcut and an entry in **Installed apps**, and can start OrbMet with Windows. |
 | `OrbMet-<version>-win-x64.zip` | The same app without an installer: unpack it into a folder you will keep and run `OrbMet.exe`. |
 
-OrbMet is not code-signed, so the first time you run it Windows may show
-**Windows protected your PC**. Click **More info**, then **Run anyway**.
+### "Windows protected your PC"
+
+OrbMet is not code-signed yet: a signing certificate costs money every year,
+and this is a free project. So the first time you run the installer, Windows
+SmartScreen may say **Windows protected your PC**. Click **More info**, then
+**Run anyway**.
+
+If you would rather check first:
+
+- The whole source is here, and every release is built from a tagged commit
+  with `tools\publish.ps1`.
+- Each download has a `.sha256` file next to it. Compare it with
+  `Get-FileHash .\OrbMet-<version>-setup.exe` in PowerShell.
+- OrbMet installs for your user only and never asks for administrator rights.
 
 OrbMet lives in the system tray. Right-click the strip or the tray icon for
 the menu; **Exit** is in the tray menu.
@@ -187,6 +209,10 @@ installer needs [Inno Setup 6](https://jrsoftware.org/isinfo.php)
 (`winget install JRSoftware.InnoSetup`).
 
 ## Credits
+
+OrbMet was inspired by [Pulse](https://github.com/qunqin24/Pulse), a
+screen-edge usage monitor for macOS, and adapts parts of its code for
+Windows (Apache 2.0, see the notices).
 
 Provider marks come from [Lobe Icons](https://github.com/lobehub/lobe-icons)
 (MIT). Third-party licences are listed in

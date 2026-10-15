@@ -1,0 +1,19 @@
+name: Feature request
+description: An idea that would make OrbMet more useful.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like OrbMet to do?
+      description: The situation you're in and what's missing. A sketch or screenshot is welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why does it matter to you?
+  - type: markdown
+    attributes:
+      value: |
+        OrbMet only shows figures a provider reports itself, and never sends prompts or spends usage. Ideas that need either are unlikely to be added.
