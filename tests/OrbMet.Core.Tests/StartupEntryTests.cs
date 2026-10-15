@@ -92,6 +92,42 @@ public class StartupEntryTests
         Assert.Empty(list.Values);
     }
 
+    [Fact]
+    public void UninstallRemovesThisCopysEntry()
+    {
+        var list = new FakeList();
+        list.Values[StartupEntry.Name] = "\"c:\\apps\\orbmet\\OrbMet.exe\"";
+        list.OffInWindows.Add(StartupEntry.Name);
+        var entry = new StartupEntry(list, Exe, fileExists: _ => true);
+
+        Assert.True(entry.RemoveIfThisCopy());
+
+        Assert.Empty(list.Values);
+        Assert.Empty(list.OffInWindows);
+    }
+
+    [Fact]
+    public void UninstallRemovesAnEntryForACopyThatIsGone()
+    {
+        var list = new FakeList();
+        list.Values[StartupEntry.Name] = "\"D:\\Old\\OrbMet.exe\"";
+        var entry = new StartupEntry(list, Exe, fileExists: _ => false);
+
+        Assert.True(entry.RemoveIfThisCopy());
+        Assert.Empty(list.Values);
+    }
+
+    [Fact]
+    public void UninstallKeepsAnotherCopysEntry()
+    {
+        var list = new FakeList();
+        list.Values[StartupEntry.Name] = "\"D:\\Portable\\OrbMet.exe\"";
+        var entry = new StartupEntry(list, Exe, fileExists: _ => true);
+
+        Assert.False(entry.RemoveIfThisCopy());
+        Assert.Single(list.Values);
+    }
+
     [Theory]
     [InlineData("\"C:\\A B\\OrbMet.exe\"", @"C:\A B\OrbMet.exe")]
     [InlineData("\"C:\\A B\\OrbMet.exe\" --flag", @"C:\A B\OrbMet.exe")]

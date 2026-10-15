@@ -79,6 +79,30 @@ public sealed class StartupEntry
         return true;
     }
 
+    /// <summary>
+    /// Removes the entry when it starts this copy, or a copy that is gone;
+    /// for an uninstall. Another copy that still exists keeps its entry.
+    /// Returns whether it removed anything.
+    /// </summary>
+    public bool RemoveIfThisCopy()
+    {
+        if (_list.Get(Name) is not { } command)
+        {
+            return false;
+        }
+
+        var named = ExePath(command);
+        var thisCopy = named is not null && string.Equals(
+            Path.GetFullPath(named), Path.GetFullPath(_exePath), StringComparison.OrdinalIgnoreCase);
+        if (!thisCopy && named is not null && _fileExists(named))
+        {
+            return false;
+        }
+
+        TurnOff();
+        return true;
+    }
+
     /// <summary>The program a Run command starts: the quoted path, or the whole command.</summary>
     public static string? ExePath(string? command)
     {

@@ -19,6 +19,7 @@ starts to matter: green below 50%, yellow below 75%, red above.
 - Drag the strip to any edge or corner and it docks there, or leave it
   anywhere on screen. It remembers where.
 - Never takes focus from your terminal.
+- Can start with Windows (off unless you turn it on in the menu).
 - English and Turkish, switchable from the menu.
 
 <p align="center"><img src="docs/docking.gif" width="600" alt="Dragging the strip round the screen: it docks to each edge, turns into an L in the corners and floats in the middle, then hovering each ring opens its card"></p>
@@ -30,13 +31,12 @@ starts to matter: green below 50%, yellow below 75%, red above.
 
 ## Install
 
-Download a zip from [Releases](../../releases), unpack it into any folder and
-run `OrbMet.exe`. There is no installer.
+Download from [Releases](../../releases). Neither needs .NET installed.
 
-| Download | Size | Needs |
-| --- | --- | --- |
-| `OrbMet-<version>-win-x64.zip` | ~70 MB | Nothing, runs as is |
-| `OrbMet-<version>-win-x64-runtime-required.zip` | <1 MB | [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) |
+| Download | What it is |
+| --- | --- |
+| `OrbMet-<version>-setup.exe` | Installer. Installs for your user only (no administrator rights), adds a Start menu shortcut and an entry in **Installed apps**, and can start OrbMet with Windows. |
+| `OrbMet-<version>-win-x64.zip` | The same app without an installer: unpack it into a folder you will keep and run `OrbMet.exe`. |
 
 OrbMet is not code-signed, so the first time you run it Windows may show
 **Windows protected your PC**. Click **More info**, then **Run anyway**.
@@ -93,8 +93,13 @@ OrbMet makes no network requests of its own and sends nothing anywhere.
 
 ## Uninstall
 
-Press **Disconnect** in Connections if Claude Code is connected, exit OrbMet
-from the tray, then delete its folder and `%LOCALAPPDATA%\OrbMet`.
+**Installed:** uninstall OrbMet from **Settings > Apps > Installed apps**. It
+puts Claude Code's previous status line back, removes the Start with Windows
+entry, and asks whether to delete your settings in `%LOCALAPPDATA%\OrbMet`.
+
+**From the zip:** press **Disconnect** in Connections if Claude Code is
+connected, turn off **Start with Windows** if it is on, exit OrbMet from the
+tray, then delete its folder and `%LOCALAPPDATA%\OrbMet`.
 
 ## Building
 
@@ -108,10 +113,12 @@ dotnet test -c Debug --no-build
 Release packages:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -Version 0.1.0
+powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -Version 0.2.0
 ```
 
-This writes both zips to `artifacts\`.
+This writes the installer and the zip to `artifacts\`. The installer needs
+[Inno Setup 6](https://jrsoftware.org/isinfo.php)
+(`winget install JRSoftware.InnoSetup`).
 
 ## Credits
 

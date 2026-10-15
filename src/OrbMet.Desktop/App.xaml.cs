@@ -11,6 +11,14 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // Run by the uninstaller: undo this copy's settings outside its folder, no panel.
+        if (e.Args.Contains(Infrastructure.UninstallCleanup.Argument))
+        {
+            Infrastructure.UninstallCleanup.Run();
+            Shutdown();
+            return;
+        }
+
         // One instance owns the tray and the Codex helper. A second launch
         // steps aside rather than fighting over either.
         _instanceMutex = new Mutex(initiallyOwned: true, InstanceName, out var createdNew);
