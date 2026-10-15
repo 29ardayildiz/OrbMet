@@ -405,4 +405,7 @@
   <data name="AfterMinutesFormat" xml:space="preserve">
     <value>{0} dakika sonra</value>
   </data>
+  <data name="OnStripFormat" xml:space="preserve">
+    <value>Şeritte {0}</value>
+  </data>
 </root>

@@ -26,9 +26,17 @@ public sealed class UsageCoordinator
     /// <summary>Which limit each reading's ring window is picked by; read on every read.</summary>
     public RingChoice RingChoice { get; set; }
 
+    /// <summary>
+    /// Whether a provider may be read; one the user hid is never started.
+    /// Read on every read.
+    /// </summary>
+    public Func<ProviderId, bool> IsEnabled { get; set; } = _ => true;
+
     public async Task<IReadOnlyList<ProviderUsage>> ReadAllAsync(CancellationToken cancellationToken)
     {
-        var tasks = _providers.Select(provider => ReadOneAsync(provider, cancellationToken));
+        var tasks = _providers
+            .Where(provider => IsEnabled(provider.ProviderId))
+            .Select(provider => ReadOneAsync(provider, cancellationToken));
         return await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
@@ -38,7 +46,7 @@ public sealed class UsageCoordinator
     /// </summary>
     public async Task<ProviderUsage?> ReadAsync(ProviderId providerId, CancellationToken cancellationToken)
     {
-        var provider = _providers.FirstOrDefault(candidate => candidate.ProviderId == providerId);
+        var provider = _providers.FirstOrDefault(candidate => candidate.ProviderId == providerId && IsEnabled(candidate.ProviderId));
         return provider is null ? null : await ReadOneAsync(provider, cancellationToken).ConfigureAwait(false);
     }
 

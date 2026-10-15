@@ -50,7 +50,7 @@ public partial class MainWindow : Window
     // drawn inside it with clear room all round. A window that moves while
     // its drawing changes shows the old drawing at the new place for a frame,
     // so the two never change together by more than a few DIPs.
-    private readonly Size _windowSize;
+    private Size _windowSize;
     private Point _windowAt;
     private Vector _inset;
 
@@ -63,6 +63,7 @@ public partial class MainWindow : Window
     private TimeSpan _lastFrame;
     private bool _exitRequested;
     private bool _cleanedUp;
+    private bool _rebuildPending;
 
     // Folding when idle: how long the pointer has been away, and whether the
     // strip is the sliver now (design.md 4.3).
@@ -111,15 +112,7 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
         RingChoiceMenu.Changed += _viewModel.UseRingChoice;
 
-        foreach (var slot in _viewModel.Providers)
-        {
-            var view = new SlotView { DataContext = slot };
-            view.RingElement.MouseEnter += OnRingMouseEnter;
-            _slotViews.Add(view);
-            SlotLayer.Children.Add(view);
-        }
-
-        _windowSize = RoomyWindowSize(SlotCount);
+        BuildSlotViews();
         UsePlan(_shownDock, _reversed);
         ShowPlanAt(default, centre: true);
 
@@ -129,7 +122,7 @@ public partial class MainWindow : Window
             openConnections: OpenConnections,
             refresh: () => _ = _viewModel.RefreshAsync(showProgress: true),
             exit: ExitApplication);
-        foreach (var slot in _viewModel.Providers)
+        foreach (var slot in new[] { _viewModel.Claude, _viewModel.Codex })
         {
             slot.PropertyChanged += (_, e) =>
             {
@@ -144,6 +137,7 @@ public partial class MainWindow : Window
         Localizer.Instance.LanguageChanged += (_, _) => ShowUsageInTray();
         AppearanceMenu.Changed += ShowUsageInTray;
         ShowUsageInTray();
+        _viewModel.ProvidersChanged += (_, _) => RebuildStrip();
 
         var notifier = new UsageNotifier(
             _tray,
@@ -189,6 +183,50 @@ public partial class MainWindow : Window
     }
 
     private int SlotCount => _viewModel.Providers.Count;
+
+    /// <summary>One slot view per provider the strip shows, and a window with room for their outlines.</summary>
+    private void BuildSlotViews()
+    {
+        foreach (var old in _slotViews)
+        {
+            old.RingElement.MouseEnter -= OnRingMouseEnter;
+        }
+
+        _slotViews.Clear();
+        SlotLayer.Children.Clear();
+        foreach (var slot in _viewModel.Providers)
+        {
+            var view = new SlotView { DataContext = slot };
+            view.RingElement.MouseEnter += OnRingMouseEnter;
+            _slotViews.Add(view);
+            SlotLayer.Children.Add(view);
+        }
+
+        _windowSize = RoomyWindowSize(SlotCount);
+    }
+
+    /// <summary>
+    /// A provider was installed, removed, hidden or shown again (design.md
+    /// 4.4): the strip is laid out afresh for its new number of rings, where
+    /// it was.
+    /// </summary>
+    private void RebuildStrip()
+    {
+        // Never under the hand: done when the press ends.
+        if (_pressed)
+        {
+            _rebuildPending = true;
+            return;
+        }
+
+        _rebuildPending = false;
+        HideCard();
+        BuildSlotViews();
+        UsePlan(_position.Dock, _position.Reversed);
+        ShowPlanAt(_origin, centre: true);
+        Place();
+        ShowUsageInTray();
+    }
 
     /// <summary>
     /// The tray icon shows the fullest ring and its tip lists every provider
@@ -817,6 +855,11 @@ public partial class MainWindow : Window
         {
             Root.ReleaseMouseCapture();
         }
+
+        if (_rebuildPending)
+        {
+            Dispatcher.BeginInvoke(RebuildStrip);
+        }
     }
 
     private static UsageRing? FindRing(DependencyObject? element)
@@ -893,12 +936,13 @@ public partial class MainWindow : Window
             side = strip.X + strip.Width / 2 < area.CenterX ? CardSide.Right : CardSide.Left;
         }
 
-        // In a corner the card also keeps clear of the L's other arm.
-        if (PanelLayout.ShapeOf(dock) == PanelShape.Corner)
+        // In a corner the card also keeps clear of the L's other arm. With a
+        // single ring the corner holds a plain capsule, and there is no other arm.
+        var otherArm = onHorizontalArm ? plan.VerticalArm : plan.HorizontalArm;
+        if (PanelLayout.ShapeOf(dock) == PanelShape.Corner && !otherArm.IsEmpty)
         {
-            var other = onHorizontalArm ? plan.VerticalArm : plan.HorizontalArm;
-            other.Offset(_origin.X, _origin.Y);
-            bounds = Clear(bounds, other, onHorizontalArm);
+            otherArm.Offset(_origin.X, _origin.Y);
+            bounds = Clear(bounds, otherArm, onHorizontalArm);
         }
 
         _card.ShowFor(slot, ringCentre, arm, bounds, side);

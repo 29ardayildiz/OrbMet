@@ -50,6 +50,17 @@ public sealed record DisplaySettings
     public TimeSpan CollapseDelay =>
         TimeSpan.FromSeconds(CollapseDelays.Contains(CollapseAfterSeconds) ? CollapseAfterSeconds : 30);
 
+    /// <summary>The user hid this provider from the strip; it is then not read at all.</summary>
+    public bool HideClaude { get; init; }
+
+    public bool HideCodex { get; init; }
+
+    [JsonIgnore]
+    public IReadOnlySet<ProviderId> Hidden => new HashSet<ProviderId>(
+        new[] { (ProviderId.ClaudeCode, HideClaude), (ProviderId.Codex, HideCodex) }
+            .Where(entry => entry.Item2)
+            .Select(entry => entry.Item1));
+
     /// <summary>The strip moves to whichever display the pointer settles on.</summary>
     public bool FollowPointer { get; init; }
 

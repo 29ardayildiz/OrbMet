@@ -66,6 +66,12 @@ internal static class AppearanceMenu
         }
 
         menu.Items.Add(new Separator());
+        foreach (var (id, name) in Providers)
+        {
+            menu.Items.Add(ShowProvider(id, name));
+        }
+
+        menu.Items.Add(new Separator());
         menu.Items.Add(CollapseMenu());
         menu.Items.Add(Toggle("FollowPointer", settings => settings.FollowPointer, settings => settings with { FollowPointer = !settings.FollowPointer }));
         menu.Items.Add(Toggle("ShowActivity", settings => settings.ShowActivity, settings => settings with { ShowActivity = !settings.ShowActivity }));
@@ -85,6 +91,37 @@ internal static class AppearanceMenu
         {
             item.Header = Localizer.Instance[textKey];
             item.IsChecked = isOn(Current);
+        }
+
+        Show();
+        Changed += Show;
+        Localizer.Instance.LanguageChanged += (_, _) => Show();
+        return item;
+    }
+
+    /// <summary>
+    /// "Claude Code on the strip" and "Codex on the strip" (design.md 4.4):
+    /// unticked hides that provider and stops reading it. The last one shown
+    /// cannot be hidden, so the strip is never empty.
+    /// </summary>
+    private static MenuItem ShowProvider(ProviderId providerId, string providerName)
+    {
+        var item = new MenuItem();
+        item.Click += (_, _) =>
+        {
+            var hide = !Current.Hidden.Contains(providerId);
+            var next = providerId == ProviderId.Codex ? Current with { HideCodex = hide } : Current with { HideClaude = hide };
+            if (next.Hidden.Count < Providers.Length)
+            {
+                Use(next);
+            }
+        };
+
+        void Show()
+        {
+            item.Header = Localizer.Instance.Text.Format("OnStripFormat", providerName);
+            item.IsChecked = !Current.Hidden.Contains(providerId);
+            item.IsEnabled = Current.Hidden.Contains(providerId) || Current.Hidden.Count < Providers.Length - 1;
         }
 
         Show();

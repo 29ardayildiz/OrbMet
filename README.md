@@ -15,6 +15,9 @@ starts to matter: green below 50%, yellow below 75%, red above.
 - One ring per provider showing its 5-hour limit, as the provider reports it.
   The menu can switch the rings to the weekly limit, or to whichever limit is
   closest to running out.
+- Shows only the providers you have: with Claude Code alone you see one
+  ring. A provider you install later appears by itself; one you have but do
+  not want can be hidden under **Appearance**, and is then not read at all.
 - A thin outer arc shows how much of the limit's window has passed, so you
   can see at a glance whether you are ahead of the clock.
 - Under **Appearance**: show what is left instead of what is used, pick each

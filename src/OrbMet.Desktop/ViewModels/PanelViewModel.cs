@@ -19,6 +19,7 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
     private static readonly TimeSpan MinimumRefreshDisplay = TimeSpan.FromMilliseconds(650);
 
     private readonly UsageCoordinator _coordinator;
+    private IReadOnlySet<ProviderId> _installed;
     private readonly Func<ClaudeIntegrationState?>? _claudeLink;
     private readonly DispatcherTimer _timer;
     private readonly CancellationTokenSource _cancellation = new();
@@ -43,17 +44,60 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
 
         Claude = new ProviderSlotViewModel(ProviderId.ClaudeCode, "Claude Code", "claude");
         Codex = new ProviderSlotViewModel(ProviderId.Codex, "Codex", "openai");
-        Providers = new ObservableCollection<ProviderSlotViewModel> { Claude, Codex };
+        Providers = new ObservableCollection<ProviderSlotViewModel>();
+
+        // A provider the user hid is never read (design.md 4.4).
+        _coordinator.IsEnabled = id => !AppearanceMenu.Current.Hidden.Contains(id);
+
+        // Only file checks, so the strip opens in its right shape rather
+        // than changing it a moment later.
+        _installed = ProviderPresence.Detect();
+        ShowVisibleProviders();
 
         RefreshCommand = new RelayCommand(() => RefreshAsync(showProgress: true), () => !IsRefreshing);
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(120) };
         _timer.Tick += async (_, _) => await RefreshAsync();
         Localizer.Instance.LanguageChanged += (_, _) => ShowLastUpdated();
+        AppearanceMenu.Changed += () =>
+        {
+            // A provider shown again has no reading yet; read it now.
+            if (ShowVisibleProviders())
+            {
+                _ = RefreshAsync();
+            }
+        };
     }
 
     /// <summary>Every provider was read and the slots show the result; the notifications look here.</summary>
     public event EventHandler? ReadCompleted;
+
+    /// <summary>The strip's providers changed: one was installed, removed, hidden or shown again.</summary>
+    public event EventHandler? ProvidersChanged;
+
+    /// <summary>
+    /// Shows the providers this machine has and the user has not hidden, in
+    /// order (<see cref="ProviderPresence.Visible"/>). Returns whether that changed.
+    /// </summary>
+    private bool ShowVisibleProviders()
+    {
+        var visible = ProviderPresence.Visible(_installed, AppearanceMenu.Current.Hidden)
+            .Select(id => id == ProviderId.Codex ? Codex : Claude)
+            .ToList();
+        if (visible.SequenceEqual(Providers))
+        {
+            return false;
+        }
+
+        Providers.Clear();
+        foreach (var slot in visible)
+        {
+            Providers.Add(slot);
+        }
+
+        ProvidersChanged?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
 
     public ProviderSlotViewModel Claude { get; }
 
@@ -111,6 +155,10 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
 
         try
         {
+            // A provider installed or removed since shows or goes now.
+            _installed = await Task.Run(ProviderPresence.Detect);
+            ShowVisibleProviders();
+
             var results = await Task.Run(() => _coordinator.ReadAllAsync(_cancellation.Token));
             foreach (var usage in results)
             {
