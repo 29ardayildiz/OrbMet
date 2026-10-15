@@ -67,7 +67,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        StripMenu.Items.Insert(2, RingChoiceMenu.Create());
+        StripMenu.Items.Insert(2, AppearanceMenu.Create());
         StripMenu.Items.Insert(3, AlertsMenu.Create());
         StripMenu.Items.Insert(5, LanguageMenu.Create());
         StripMenu.Items.Insert(6, StartupMenu.Create());
@@ -116,7 +116,8 @@ public partial class MainWindow : Window
         {
             slot.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName is nameof(ProviderSlotViewModel.RingPercent) or nameof(ProviderSlotViewModel.IsExhausted))
+                if (e.PropertyName is nameof(ProviderSlotViewModel.RingPercent) or nameof(ProviderSlotViewModel.IsExhausted)
+                    or nameof(ProviderSlotViewModel.GoodBrush))
                 {
                     ShowUsageInTray();
                 }
@@ -124,6 +125,7 @@ public partial class MainWindow : Window
         }
 
         Localizer.Instance.LanguageChanged += (_, _) => ShowUsageInTray();
+        AppearanceMenu.Changed += ShowUsageInTray;
         ShowUsageInTray();
 
         var notifier = new UsageNotifier(
@@ -176,9 +178,17 @@ public partial class MainWindow : Window
             .OrderByDescending(slot => slot.IsExhausted ? double.MaxValue : slot.RingPercent)
             .FirstOrDefault();
 
+        // With "show what is left" the tip says so in words; the icon still fills with use.
         var text = Localizer.Instance.Usage;
-        var lines = _viewModel.Providers.Select(slot => $"{slot.DisplayName}: {text.Percent(slot.RingPercent)}");
-        _tray.ShowUsage(fullest?.RingPercent, fullest?.IsExhausted == true, string.Join("\n", lines.Prepend("OrbMet")));
+        var remaining = AppearanceMenu.Current.ShowRemaining;
+        var lines = _viewModel.Providers.Select(slot => remaining && slot.RingPercent is not null
+            ? $"{slot.DisplayName}: {text.UsedOrLeft(slot.RingPercent, slot.IsExhausted, showRemaining: true)}"
+            : $"{slot.DisplayName}: {text.Percent(slot.RingPercent)}");
+        _tray.ShowUsage(
+            fullest?.RingPercent,
+            fullest?.IsExhausted == true,
+            fullest?.GoodBrush,
+            string.Join("\n", lines.Prepend("OrbMet")));
     }
 
     /// <summary>

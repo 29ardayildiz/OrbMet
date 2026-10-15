@@ -14,6 +14,8 @@ public sealed class ProviderSlotViewModel : ObservableObject
 {
     private ProviderUsage? _usage;
     private double? _ringPercent;
+    private double? _clockFraction;
+    private System.Windows.Media.Brush _goodBrush;
     private bool _isExhausted;
     private bool _hasReading;
     private bool _isSpent;
@@ -34,7 +36,9 @@ public sealed class ProviderSlotViewModel : ObservableObject
         ProviderId = providerId;
         DisplayName = displayName;
         Mark = mark;
+        _goodBrush = AppearanceMenu.GoodFor(providerId);
         Localizer.Instance.LanguageChanged += (_, _) => OnLanguageChanged();
+        AppearanceMenu.Changed += Rebuild;
     }
 
     public ProviderId ProviderId { get; }
@@ -52,6 +56,23 @@ public sealed class ProviderSlotViewModel : ObservableObject
     {
         get => _ringPercent;
         private set => SetProperty(ref _ringPercent, value);
+    }
+
+    /// <summary>
+    /// How much of the ring's window has passed, 0 to 1, for the window clock
+    /// arc; null when it is off or the window's length or reset is unknown.
+    /// </summary>
+    public double? ClockFraction
+    {
+        get => _clockFraction;
+        private set => SetProperty(ref _clockFraction, value);
+    }
+
+    /// <summary>The colour this provider's ring, bars and figure take while below the warning thresholds.</summary>
+    public System.Windows.Media.Brush GoodBrush
+    {
+        get => _goodBrush;
+        private set => SetProperty(ref _goodBrush, value);
     }
 
     /// <summary>True only when the provider explicitly reports being blocked.</summary>
@@ -188,15 +209,24 @@ public sealed class ProviderSlotViewModel : ObservableObject
         RingPercent = window?.UsedPercent;
         HasReading = RingPercent is not null;
         IsSpent = IsExhausted || RingPercent >= 100;
-        PercentText = text.Percent(RingPercent);
+        var display = AppearanceMenu.Current;
+        PercentText = text.Figure(RingPercent, IsExhausted, display.ShowRemaining);
         PlanText = text.Plan(usage.Snapshot.PlanName);
+        GoodBrush = AppearanceMenu.GoodFor(ProviderId);
 
         UpdateDetails(DateTimeOffset.UtcNow, TimeZoneInfo.Local);
 
         var words = Localizer.Instance.Text;
         AccessibleText = window?.UsedPercent is { } percent
-            ? words.Format("SpokenUsageFormat", DisplayName, text.LimitTitle(window, DisplayName), percent.ToString("0", words.Culture))
+            ? display.ShowRemaining
+                ? words.Format("SpokenRemainingFormat", DisplayName, text.LimitTitle(window, DisplayName), UsageText.Remaining(percent, IsExhausted)!.Value.ToString("0", words.Culture))
+                : words.Format("SpokenUsageFormat", DisplayName, text.LimitTitle(window, DisplayName), percent.ToString("0", words.Culture))
             : words.Format("SpokenNoDataFormat", DisplayName);
+        if (ClockFraction is { } elapsed)
+        {
+            AccessibleText += ", " + words.Format("WindowElapsedFormat", text.Percent(Math.Round(elapsed * 100)));
+        }
+
         if ((Message ?? Footnote) is { } note)
         {
             AccessibleText += $", {note}";
@@ -224,6 +254,9 @@ public sealed class ProviderSlotViewModel : ObservableObject
         }
 
         var snapshot = usage.Snapshot;
+        ClockFraction = AppearanceMenu.Current.WindowClock && usage.RingWindow is { } ringWindow
+            ? UsagePace.Elapsed(ringWindow, nowUtc)
+            : null;
         IsReceiving = snapshot.ConnectionState == ConnectionState.Ready
             && snapshot.Freshness == Freshness.Fresh
             && snapshot.Windows.Count > 0;
@@ -245,17 +278,27 @@ public sealed class ProviderSlotViewModel : ObservableObject
         // is hidden rather than shown as the new period's usage.
         var percent = expired ? null : window.UsedPercent;
         var exhausted = !expired && window.ExhaustionEvidence == ExhaustionEvidence.Exhausted;
-        var usedText = expired ? string.Empty : text.Used(percent);
+        var display = AppearanceMenu.Current;
+        var usedText = expired ? string.Empty : text.UsedOrLeft(percent, exhausted, display.ShowRemaining);
+
+        // A forecast, marked as one, never in place of the figure.
+        var forecast = display.Forecast && !expired ? text.Forecast(UsagePace.Forecast(window, nowUtc)) : null;
 
         var spoken = expired
             ? $"{title}, {resetText}"
             : string.IsNullOrEmpty(resetText) ? $"{title}, {usedText}" : $"{title}, {usedText}, {resetText}";
+        if (forecast is not null)
+        {
+            spoken += $", {forecast}";
+        }
 
         return new UsageWindowRowViewModel
         {
             Title = title,
             Percent = percent,
             UsedText = usedText,
+            ForecastText = forecast,
+            GoodBrush = AppearanceMenu.GoodFor(ProviderId),
             IsExhausted = exhausted,
             IsSpent = exhausted || percent >= 100,
             ResetText = resetText,

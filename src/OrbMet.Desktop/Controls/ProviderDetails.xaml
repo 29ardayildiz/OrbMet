@@ -77,6 +77,7 @@
                     <MultiBinding Converter="{StaticResource UsageBrush}">
                         <Binding Path="RingPercent" />
                         <Binding Path="IsExhausted" />
+                        <Binding Path="GoodBrush" />
                     </MultiBinding>
                 </TextBlock.Foreground>
             </TextBlock>
@@ -96,7 +97,8 @@
                         <controls:UsageBar Height="6"
                                            Margin="0,7,0,0"
                                            Percent="{Binding Percent}"
-                                           IsExhausted="{Binding IsExhausted}">
+                                           IsExhausted="{Binding IsExhausted}"
+                                           GoodBrush="{Binding GoodBrush}">
                             <controls:UsageBar.Style>
                                 <Style TargetType="controls:UsageBar">
                                     <Style.Triggers>
@@ -135,6 +137,22 @@
                                        HorizontalAlignment="Right"
                                        TextTrimming="CharacterEllipsis" />
                         </Grid>
+                        <!-- Only with "Forecast on the card": always marked as a forecast. -->
+                        <TextBlock Text="{Binding ForecastText}"
+                                   Foreground="{StaticResource TextReset}"
+                                   FontSize="11.5"
+                                   Margin="0,5,0,0"
+                                   TextTrimming="CharacterEllipsis">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ForecastText}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>

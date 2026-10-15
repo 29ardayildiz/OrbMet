@@ -321,4 +321,70 @@
   <data name="UpdateFailed" xml:space="preserve">
     <value>OrbMet güncellenemedi</value>
   </data>
+  <data name="Appearance" xml:space="preserve">
+    <value>Görünüm</value>
+  </data>
+  <data name="WindowClock" xml:space="preserve">
+    <value>Pencere saati</value>
+  </data>
+  <data name="ShowRemaining" xml:space="preserve">
+    <value>Kalanı göster</value>
+  </data>
+  <data name="ShowForecast" xml:space="preserve">
+    <value>Kartta tükenme tahmini</value>
+  </data>
+  <data name="RingColourFormat" xml:space="preserve">
+    <value>{0} rengi</value>
+  </data>
+  <data name="ColourGreen" xml:space="preserve">
+    <value>Yeşil</value>
+  </data>
+  <data name="ColourTeal" xml:space="preserve">
+    <value>Turkuaz</value>
+  </data>
+  <data name="ColourBlue" xml:space="preserve">
+    <value>Mavi</value>
+  </data>
+  <data name="ColourPurple" xml:space="preserve">
+    <value>Mor</value>
+  </data>
+  <data name="ColourPink" xml:space="preserve">
+    <value>Pembe</value>
+  </data>
+  <data name="ColourWhite" xml:space="preserve">
+    <value>Beyaz</value>
+  </data>
+  <data name="LeftFormat" xml:space="preserve">
+    <value>{0} kaldı</value>
+  </data>
+  <data name="AlertLeftFormat" xml:space="preserve">
+    <value>{0}: {1} kaldı</value>
+  </data>
+  <data name="SpokenRemainingFormat" xml:space="preserve">
+    <value>{0}, {1}, yüzde {2} kaldı</value>
+  </data>
+  <data name="ForecastLasts" xml:space="preserve">
+    <value>Tahmin: sıfırlanmaya kadar yeter</value>
+  </data>
+  <data name="ForecastRunsOut" xml:space="preserve">
+    <value>Tahmin: sıfırlanmadan dolar</value>
+  </data>
+  <data name="ForecastRunsOutInFormat" xml:space="preserve">
+    <value>Tahmin: {0} içinde dolar</value>
+  </data>
+  <data name="UnderFifteenMinutes" xml:space="preserve">
+    <value>15 dakikadan az</value>
+  </data>
+  <data name="AboutMinutesFormat" xml:space="preserve">
+    <value>yaklaşık {0} dakika</value>
+  </data>
+  <data name="AboutAnHour" xml:space="preserve">
+    <value>yaklaşık 1 saat</value>
+  </data>
+  <data name="AboutHoursFormat" xml:space="preserve">
+    <value>yaklaşık {0} saat</value>
+  </data>
+  <data name="WindowElapsedFormat" xml:space="preserve">
+    <value>geçen süre {0}</value>
+  </data>
 </root>

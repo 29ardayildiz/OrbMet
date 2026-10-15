@@ -13,9 +13,11 @@ public sealed class UsageBrushConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
     {
+        // An optional third value: the provider's own colour below the warnings.
         var exhausted = values.Length > 1 && values[1] is true;
+        var good = values.Length > 2 ? values[2] as System.Windows.Media.Brush : null;
         return values.Length > 0 && values[0] is double percent
-            ? UsagePalette.For(percent, exhausted)
+            ? UsagePalette.For(percent, exhausted, good)
             : UsagePalette.TextFootnote;
     }
 

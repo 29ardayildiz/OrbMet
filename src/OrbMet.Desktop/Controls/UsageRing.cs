@@ -29,11 +29,45 @@ public sealed class UsageRing : FrameworkElement
     private const double RefreshSweep = 0.16;
     private static readonly TimeSpan RefreshPeriod = TimeSpan.FromSeconds(0.85);
 
+    // The window clock: a hairline 3 DIP outside the ring, neutral rather
+    // than a second hue (Pulse's measures).
+    private const double ClockGap = 3;
+    private const double ClockThickness = 2;
+    private static readonly Pen ClockTrackPen = FrozenPen(Color.FromArgb(0x29, 0xFF, 0xFF, 0xFF), round: false);
+    private static readonly Pen ClockPen = FrozenPen(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF), round: true);
+
+    private static Pen FrozenPen(Color colour, bool round)
+    {
+        var brush = new SolidColorBrush(colour);
+        brush.Freeze();
+        var pen = new Pen(brush, ClockThickness);
+        if (round)
+        {
+            pen.StartLineCap = PenLineCap.Round;
+            pen.EndLineCap = PenLineCap.Round;
+        }
+
+        pen.Freeze();
+        return pen;
+    }
+
     public static readonly DependencyProperty PercentProperty = DependencyProperty.Register(
         nameof(Percent),
         typeof(double?),
         typeof(UsageRing),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnReadingChanged));
+
+    public static readonly DependencyProperty ClockFractionProperty = DependencyProperty.Register(
+        nameof(ClockFraction),
+        typeof(double?),
+        typeof(UsageRing),
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    public static readonly DependencyProperty GoodBrushProperty = DependencyProperty.Register(
+        nameof(GoodBrush),
+        typeof(Brush),
+        typeof(UsageRing),
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
 
     public static readonly DependencyProperty IsExhaustedProperty = DependencyProperty.Register(
         nameof(IsExhausted),
@@ -108,6 +142,23 @@ public sealed class UsageRing : FrameworkElement
         set => SetValue(PercentProperty, value);
     }
 
+    /// <summary>
+    /// How much of the window has passed, drawn as a hairline arc just outside
+    /// the ring (design.md 6.6); null leaves it out.
+    /// </summary>
+    public double? ClockFraction
+    {
+        get => (double?)GetValue(ClockFractionProperty);
+        set => SetValue(ClockFractionProperty, value);
+    }
+
+    /// <summary>The provider's colour below the warning thresholds; null is the default green.</summary>
+    public Brush? GoodBrush
+    {
+        get => (Brush?)GetValue(GoodBrushProperty);
+        set => SetValue(GoodBrushProperty, value);
+    }
+
     /// <summary>True only when the provider explicitly reports being blocked.</summary>
     public bool IsExhausted
     {
@@ -166,8 +217,23 @@ public sealed class UsageRing : FrameworkElement
         var center = new Point(ActualWidth / 2, ActualHeight / 2);
         ring.DrawEllipse(null, new Pen(UsagePalette.RingTrack, thickness), center, radius, radius);
 
-        var colour = UsagePalette.For(Percent ?? 0, IsExhausted);
+        var colour = UsagePalette.For(Percent ?? 0, IsExhausted, GoodBrush);
         var arc = BuildUsageArc(center, radius);
+
+        if (ClockFraction is { } elapsed)
+        {
+            // Its own faint track, so a sliver still reads as a share of something.
+            var clockRadius = size / 2 + ClockGap + ClockThickness / 2;
+            ring.DrawEllipse(null, ClockTrackPen, center, clockRadius, clockRadius);
+            if (elapsed >= 0.999)
+            {
+                ring.DrawEllipse(null, ClockPen, center, clockRadius, clockRadius);
+            }
+            else if (elapsed > 0)
+            {
+                ring.DrawGeometry(null, ClockPen, Arc(center, clockRadius, 0, elapsed));
+            }
+        }
 
         if (arc is not null && IsSelected)
         {

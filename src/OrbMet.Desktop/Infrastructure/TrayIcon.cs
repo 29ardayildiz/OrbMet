@@ -21,7 +21,7 @@ internal sealed class TrayIcon : IDisposable
     private readonly WpfContextMenu _menu;
     private Icon? _usageIcon;
     private Action? _notificationClicked;
-    private (int Percent, bool Exhausted)? _shown;
+    private (int Percent, bool Exhausted, System.Windows.Media.Brush? Good)? _shown;
     private bool _disposed;
 
     public TrayIcon(
@@ -42,7 +42,7 @@ internal sealed class TrayIcon : IDisposable
         _menu.Items.Add(Item("OpenDetails", "\uE946", openDetails));
         _menu.Items.Add(Item("Refresh", "\uE72C", refresh));
         _menu.Items.Add(Item("Connections", "\uE71B", openConnections));
-        _menu.Items.Add(RingChoiceMenu.Create());
+        _menu.Items.Add(AppearanceMenu.Create());
         _menu.Items.Add(AlertsMenu.Create());
         _menu.Items.Add(LanguageMenu.Create());
         _menu.Items.Add(StartupMenu.Create());
@@ -93,7 +93,7 @@ internal sealed class TrayIcon : IDisposable
     /// a reading (design.md 3.1). The icon is drawn again only when what it
     /// shows changes.
     /// </summary>
-    public void ShowUsage(double? percent, bool isExhausted, string tooltip)
+    public void ShowUsage(double? percent, bool isExhausted, System.Windows.Media.Brush? good, string tooltip)
     {
         if (_disposed)
         {
@@ -103,7 +103,7 @@ internal sealed class TrayIcon : IDisposable
         // The tray cuts a tip past 127 characters; these are far shorter.
         _notifyIcon.Text = tooltip.Length > 127 ? tooltip[..127] : tooltip;
 
-        var shown = percent is { } value ? ((int)Math.Round(value), isExhausted) : ((int, bool)?)null;
+        var shown = percent is { } value ? ((int)Math.Round(value), isExhausted, good) : ((int, bool, System.Windows.Media.Brush?)?)null;
         if (shown == _shown)
         {
             return;
@@ -112,7 +112,7 @@ internal sealed class TrayIcon : IDisposable
         _shown = shown;
         var previous = _usageIcon;
         _usageIcon = percent is { } reading
-            ? TrayRing.Render(SystemInformation.SmallIconSize.Width, reading, isExhausted)
+            ? TrayRing.Render(SystemInformation.SmallIconSize.Width, reading, isExhausted, good)
             : null;
         _notifyIcon.Icon = _usageIcon ?? _icon;
         previous?.Dispose();

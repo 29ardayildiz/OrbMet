@@ -20,7 +20,7 @@ namespace OrbMet.Desktop.Infrastructure;
 internal static class TrayRing
 {
     /// <summary>An icon of <paramref name="size"/> pixels; the caller disposes it.</summary>
-    public static Icon Render(int size, double percent, bool isExhausted)
+    public static Icon Render(int size, double percent, bool isExhausted, WpfBrush? good = null)
     {
         var visual = new DrawingVisual();
         using (var dc = visual.RenderOpen())
@@ -35,7 +35,7 @@ internal static class TrayRing
 
             var spent = UsagePalette.IsSpent(percent, isExhausted);
             var fraction = spent ? 1.0 : Math.Clamp(percent, 0, 100) / 100.0;
-            var brush = UsagePalette.For(percent, isExhausted);
+            var brush = UsagePalette.For(percent, isExhausted, good);
             if (fraction >= 1.0)
             {
                 dc.DrawEllipse(null, new WpfPen(brush, thickness), centre, radius, radius);

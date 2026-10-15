@@ -32,8 +32,12 @@ internal static class UsagePalette
     public static bool IsSpent(double? percent, bool isExhausted) =>
         isExhausted || percent >= 100;
 
-    /// <summary>Threshold colour: below 50, below 75, from 75; spent wins.</summary>
-    public static Brush For(double percent, bool isExhausted)
+    /// <summary>
+    /// Threshold colour: below 50, below 75, from 75; spent wins. A colour the
+    /// user picked for the provider takes the place of green only, so the
+    /// warnings keep their meaning (design.md 5.1).
+    /// </summary>
+    public static Brush For(double percent, bool isExhausted, Brush? good = null)
     {
         if (IsSpent(percent, isExhausted))
         {
@@ -45,8 +49,24 @@ internal static class UsagePalette
             return Warning;
         }
 
-        return percent >= 50 ? Caution : Good;
+        return percent >= 50 ? Caution : good ?? Good;
     }
+
+    /// <summary>The ring colours on offer; none of them is a warning hue.</summary>
+    public static Brush Ring(Core.Usage.RingColour colour) => colour switch
+    {
+        Core.Usage.RingColour.Teal => Teal,
+        Core.Usage.RingColour.Blue => Blue,
+        Core.Usage.RingColour.Purple => Purple,
+        Core.Usage.RingColour.Pink => Pink,
+        Core.Usage.RingColour.White => Text,
+        _ => Good,
+    };
+
+    private static readonly Brush Teal = Freeze(Color.FromRgb(0x2E, 0xD3, 0xE6));
+    private static readonly Brush Blue = Freeze(Color.FromRgb(0x4D, 0x9F, 0xFF));
+    private static readonly Brush Purple = Freeze(Color.FromRgb(0xA7, 0x82, 0xFF));
+    private static readonly Brush Pink = Freeze(Color.FromRgb(0xFF, 0x78, 0xC8));
 
     private static Brush White(double opacity) =>
         Freeze(Color.FromArgb((byte)Math.Round(opacity * 255), 0xFF, 0xFF, 0xFF));

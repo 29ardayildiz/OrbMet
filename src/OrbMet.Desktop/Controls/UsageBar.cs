@@ -34,6 +34,19 @@ public sealed class UsageBar : FrameworkElement
         set => SetValue(IsExhaustedProperty, value);
     }
 
+    public static readonly DependencyProperty GoodBrushProperty = DependencyProperty.Register(
+        nameof(GoodBrush),
+        typeof(Brush),
+        typeof(UsageBar),
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    /// <summary>The provider's colour below the warning thresholds; null is the default green.</summary>
+    public Brush? GoodBrush
+    {
+        get => (Brush?)GetValue(GoodBrushProperty);
+        set => SetValue(GoodBrushProperty, value);
+    }
+
     protected override void OnRender(DrawingContext drawingContext)
     {
         base.OnRender(drawingContext);
@@ -53,7 +66,7 @@ public sealed class UsageBar : FrameworkElement
             // Keep a visible sliver for tiny values so 1% does not look like 0%.
             var fill = Math.Max(height, width * Math.Min(percent, 100) / 100.0);
             drawingContext.DrawRoundedRectangle(
-                UsagePalette.For(percent, IsExhausted),
+                UsagePalette.For(percent, IsExhausted, GoodBrush),
                 null,
                 new Rect(0, 0, Math.Min(fill, width), height),
                 radius,

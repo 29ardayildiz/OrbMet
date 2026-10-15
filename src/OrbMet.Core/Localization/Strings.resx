@@ -357,4 +357,80 @@
   <data name="UpdateFailed" xml:space="preserve">
     <value>Couldn't update OrbMet</value>
   </data>
+  <data name="Appearance" xml:space="preserve">
+    <value>Appearance</value>
+    <comment>Submenu in the strip and tray menus.</comment>
+  </data>
+  <data name="WindowClock" xml:space="preserve">
+    <value>Window clock</value>
+    <comment>Appearance item: a thin arc outside each ring showing how much of the window has passed.</comment>
+  </data>
+  <data name="ShowRemaining" xml:space="preserve">
+    <value>Show what is left</value>
+    <comment>Appearance item: figures say "25% left" instead of "75% used".</comment>
+  </data>
+  <data name="ShowForecast" xml:space="preserve">
+    <value>Forecast on the card</value>
+    <comment>Appearance item: whether each limit lasts its window at the pace so far.</comment>
+  </data>
+  <data name="RingColourFormat" xml:space="preserve">
+    <value>{0} colour</value>
+    <comment>Appearance submenu, {0} is a provider name.</comment>
+  </data>
+  <data name="ColourGreen" xml:space="preserve">
+    <value>Green</value>
+  </data>
+  <data name="ColourTeal" xml:space="preserve">
+    <value>Teal</value>
+  </data>
+  <data name="ColourBlue" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="ColourPurple" xml:space="preserve">
+    <value>Purple</value>
+  </data>
+  <data name="ColourPink" xml:space="preserve">
+    <value>Pink</value>
+  </data>
+  <data name="ColourWhite" xml:space="preserve">
+    <value>White</value>
+  </data>
+  <data name="LeftFormat" xml:space="preserve">
+    <value>{0} left</value>
+    <comment>The card figure in "show what is left": "25% left".</comment>
+  </data>
+  <data name="AlertLeftFormat" xml:space="preserve">
+    <value>{0}: {1} left</value>
+    <comment>Notification title. {0} provider, {1} percentage.</comment>
+  </data>
+  <data name="SpokenRemainingFormat" xml:space="preserve">
+    <value>{0}, {1}, {2} percent left</value>
+  </data>
+  <data name="ForecastLasts" xml:space="preserve">
+    <value>Forecast: lasts until the reset</value>
+    <comment>Card line under a limit; always marked as a forecast.</comment>
+  </data>
+  <data name="ForecastRunsOut" xml:space="preserve">
+    <value>Forecast: runs out before the reset</value>
+  </data>
+  <data name="ForecastRunsOutInFormat" xml:space="preserve">
+    <value>Forecast: runs out in {0}</value>
+    <comment>{0} is a rounded time such as "about 45 minutes".</comment>
+  </data>
+  <data name="UnderFifteenMinutes" xml:space="preserve">
+    <value>under 15 minutes</value>
+  </data>
+  <data name="AboutMinutesFormat" xml:space="preserve">
+    <value>about {0} minutes</value>
+  </data>
+  <data name="AboutAnHour" xml:space="preserve">
+    <value>about an hour</value>
+  </data>
+  <data name="AboutHoursFormat" xml:space="preserve">
+    <value>about {0} hours</value>
+  </data>
+  <data name="WindowElapsedFormat" xml:space="preserve">
+    <value>{0} of the window passed</value>
+    <comment>Spoken with the ring when the window clock is on.</comment>
+  </data>
 </root>

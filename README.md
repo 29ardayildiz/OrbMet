@@ -15,6 +15,12 @@ starts to matter: green below 50%, yellow below 75%, red above.
 - One ring per provider showing its 5-hour limit, as the provider reports it.
   The menu can switch the rings to the weekly limit, or to whichever limit is
   closest to running out.
+- A thin outer arc shows how much of the limit's window has passed, so you
+  can see at a glance whether you are ahead of the clock.
+- Under **Appearance**: show what is left instead of what is used, pick each
+  ring's colour (warnings stay yellow and red), and an optional forecast on
+  the card of whether a limit lasts until its reset. The forecast is always
+  labelled as one and never changes the figures.
 - Hover a ring to see every limit it reports (5-hour, weekly, per model),
   how much of each is used and when it resets.
 - Click a ring to refresh it.

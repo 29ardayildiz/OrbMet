@@ -66,7 +66,8 @@ internal sealed class UsageNotifier
         var usage = Localizer.Instance.Usage;
         var now = DateTimeOffset.UtcNow;
         var first = alerts[0];
-        var (title, body) = usage.Alert(first, _displayName(first.ProviderId), now, TimeZoneInfo.Local);
+        var remaining = AppearanceMenu.Current.ShowRemaining;
+        var (title, body) = usage.Alert(first, _displayName(first.ProviderId), now, TimeZoneInfo.Local, remaining);
         var lines = new List<string>();
         if (!string.IsNullOrEmpty(body))
         {
@@ -74,7 +75,7 @@ internal sealed class UsageNotifier
         }
 
         // The rest by their titles; a notification has room for a few lines.
-        lines.AddRange(alerts.Skip(1).Take(2).Select(alert => usage.Alert(alert, _displayName(alert.ProviderId), now, TimeZoneInfo.Local).Title));
+        lines.AddRange(alerts.Skip(1).Take(2).Select(alert => usage.Alert(alert, _displayName(alert.ProviderId), now, TimeZoneInfo.Local, remaining).Title));
         if (alerts.Count > 3)
         {
             lines.Add(Localizer.Instance.Text.Format("AlertMoreFormat", alerts.Count - 3));

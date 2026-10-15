@@ -14,6 +14,12 @@ public sealed class UsageWindowRowViewModel
     /// <summary>"6% used"; empty once the window's reset has passed.</summary>
     public required string UsedText { get; init; }
 
+    /// <summary>"Forecast: lasts until the reset"; null when the forecast is off or nothing may be said.</summary>
+    public string? ForecastText { get; init; }
+
+    /// <summary>The provider's colour for the bar below the warning thresholds.</summary>
+    public System.Windows.Media.Brush? GoodBrush { get; init; }
+
     public bool IsExhausted { get; init; }
 
     /// <summary>Spent colour on the figure: blocked, or at or past 100%.</summary>

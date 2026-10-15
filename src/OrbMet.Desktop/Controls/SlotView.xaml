@@ -14,6 +14,8 @@
                             Height="{x:Static infra:PanelMetrics.RingDiameter}"
                             Percent="{Binding RingPercent}"
                             IsExhausted="{Binding IsExhausted}"
+                            ClockFraction="{Binding ClockFraction}"
+                            GoodBrush="{Binding GoodBrush}"
                             IsSelected="{Binding IsSelected}"
                             IsRefreshing="{Binding IsRefreshing}"
                             Mark="{Binding Mark}" />
