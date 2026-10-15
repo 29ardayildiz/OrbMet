@@ -52,6 +52,9 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
         Localizer.Instance.LanguageChanged += (_, _) => ShowLastUpdated();
     }
 
+    /// <summary>Every provider was read and the slots show the result; the notifications look here.</summary>
+    public event EventHandler? ReadCompleted;
+
     public ProviderSlotViewModel Claude { get; }
 
     public ProviderSlotViewModel Codex { get; }
@@ -119,6 +122,7 @@ public sealed class PanelViewModel : ObservableObject, IDisposable
             _lastChecked = DateTimeOffset.Now;
             _lastReadFailed = false;
             ShowLastUpdated();
+            ReadCompleted?.Invoke(this, EventArgs.Empty);
         }
         catch (OperationCanceledException)
         {

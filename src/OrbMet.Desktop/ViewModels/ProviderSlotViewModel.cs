@@ -203,6 +203,9 @@ public sealed class ProviderSlotViewModel : ObservableObject
         }
     }
 
+    /// <summary>The last reading, or null before the first one.</summary>
+    public ProviderUsage? Usage => _usage;
+
     /// <summary>Picks the ring's window again from the last reading, without reading the provider.</summary>
     public void Reselect(RingChoice choice)
     {

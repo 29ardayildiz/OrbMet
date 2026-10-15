@@ -20,6 +20,10 @@ starts to matter: green below 50%, yellow below 75%, red above.
 - Click a ring to refresh it.
 - The tray icon is a small copy of the fullest ring; hover it for every
   provider's figure.
+- Optional notifications (off until you pick a threshold in the menu): when a
+  limit passes 75, 80, 90 or 95%, when it runs out, when a limit you were
+  warned about resets, and when Claude Code gets disconnected or Codex can't
+  be read. Each is said once.
 - Drag the strip to any edge or corner and it docks there, or leave it
   anywhere on screen. It remembers where.
 - Never takes focus from your terminal.

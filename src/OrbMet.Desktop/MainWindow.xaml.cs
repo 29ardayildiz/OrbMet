@@ -68,8 +68,9 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         StripMenu.Items.Insert(2, RingChoiceMenu.Create());
-        StripMenu.Items.Insert(4, LanguageMenu.Create());
-        StripMenu.Items.Insert(5, StartupMenu.Create());
+        StripMenu.Items.Insert(3, AlertsMenu.Create());
+        StripMenu.Items.Insert(5, LanguageMenu.Create());
+        StripMenu.Items.Insert(6, StartupMenu.Create());
         StartupMenu.FollowMove();
 
         var paths = OrbMetPaths.FromEnvironment();
@@ -122,6 +123,17 @@ public partial class MainWindow : Window
 
         Localizer.Instance.LanguageChanged += (_, _) => ShowUsageInTray();
         ShowUsageInTray();
+
+        var notifier = new UsageNotifier(
+            _tray,
+            readings: () => _viewModel.Providers
+                .Where(slot => slot.Usage is not null)
+                .Select(slot => new AlertReading(slot.Usage!.Snapshot, slot.LinkBroken))
+                .ToList(),
+            displayName: id => _viewModel.Providers.First(slot => slot.ProviderId == id).DisplayName,
+            openDetails: OpenDetails,
+            openConnections: OpenConnections);
+        _viewModel.ReadCompleted += (_, _) => notifier.Check();
 
         _card = new DetailCardWindow();
 

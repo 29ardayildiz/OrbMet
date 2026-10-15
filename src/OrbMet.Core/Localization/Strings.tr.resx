@@ -264,4 +264,40 @@
   <data name="RingClosest" xml:space="preserve">
     <value>Dolmaya en yakın limit</value>
   </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Bildirimler</value>
+  </data>
+  <data name="NotificationsOff" xml:space="preserve">
+    <value>Kapalı</value>
+  </data>
+  <data name="NotificationsAtFormat" xml:space="preserve">
+    <value>{0} olunca</value>
+  </data>
+  <data name="AlertApproachingFormat" xml:space="preserve">
+    <value>{0}: {1} kullanıldı</value>
+  </data>
+  <data name="AlertSpentFormat" xml:space="preserve">
+    <value>{0}: limit doldu</value>
+  </data>
+  <data name="AlertResetFormat" xml:space="preserve">
+    <value>{0}: limit sıfırlandı</value>
+  </data>
+  <data name="AlertResetBodyFormat" xml:space="preserve">
+    <value>{0} yeniden kullanılabilir.</value>
+  </data>
+  <data name="AlertClaudeLink" xml:space="preserve">
+    <value>Claude Code bağlantısı koptu</value>
+  </data>
+  <data name="AlertClaudeLinkBody" xml:space="preserve">
+    <value>Yeniden bağlamak için Bağlantılar'ı aç.</value>
+  </data>
+  <data name="AlertCodexUnreadable" xml:space="preserve">
+    <value>Codex okunamıyor</value>
+  </data>
+  <data name="AlertCodexUnreadableBody" xml:space="preserve">
+    <value>Birkaç dakikadır veri alınamıyor.</value>
+  </data>
+  <data name="AlertMoreFormat" xml:space="preserve">
+    <value>+{0} bildirim daha</value>
+  </data>
 </root>

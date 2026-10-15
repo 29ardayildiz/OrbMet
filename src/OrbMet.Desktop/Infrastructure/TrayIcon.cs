@@ -20,6 +20,7 @@ internal sealed class TrayIcon : IDisposable
     private readonly Icon _icon;
     private readonly WpfContextMenu _menu;
     private Icon? _usageIcon;
+    private Action? _notificationClicked;
     private (int Percent, bool Exhausted)? _shown;
     private bool _disposed;
 
@@ -41,6 +42,7 @@ internal sealed class TrayIcon : IDisposable
         _menu.Items.Add(Item("Refresh", "\uE72C", refresh));
         _menu.Items.Add(Item("Connections", "\uE71B", openConnections));
         _menu.Items.Add(RingChoiceMenu.Create());
+        _menu.Items.Add(AlertsMenu.Create());
         _menu.Items.Add(LanguageMenu.Create());
         _menu.Items.Add(StartupMenu.Create());
         _menu.Items.Add(new WpfSeparator());
@@ -65,6 +67,23 @@ internal sealed class TrayIcon : IDisposable
                 _menu.IsOpen = true;
             }
         };
+        _notifyIcon.BalloonTipClicked += (_, _) => _notificationClicked?.Invoke();
+    }
+
+    /// <summary>
+    /// A Windows notification from the tray icon, under OrbMet's name; Windows
+    /// shows it as a toast and keeps to Do not disturb. A click runs
+    /// <paramref name="onClick"/>.
+    /// </summary>
+    public void ShowNotification(string title, string text, Action onClick)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _notificationClicked = onClick;
+        _notifyIcon.ShowBalloonTip(10_000, title, string.IsNullOrWhiteSpace(text) ? title : text, ToolTipIcon.None);
     }
 
     /// <summary>

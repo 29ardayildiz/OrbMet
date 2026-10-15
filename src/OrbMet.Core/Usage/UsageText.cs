@@ -124,6 +124,28 @@ public sealed class UsageText
         return _text.Format("PlanFormat", $"{char.ToUpperInvariant(name[0])}{name[1..]}");
     }
 
+    /// <summary>
+    /// A notification's title and text: "Codex: 82% used" over "5-hour limit
+    /// · Resets 17:00". The figure is the provider's own reading.
+    /// </summary>
+    public (string Title, string Body) Alert(UsageAlert alert, string providerDisplayName, DateTimeOffset nowUtc, TimeZoneInfo zone)
+    {
+        ArgumentNullException.ThrowIfNull(alert);
+
+        var limit = alert.Window is { } window ? LimitTitle(window, providerDisplayName) : string.Empty;
+        var reset = alert.Window is { } resetting ? ResetAt(resetting.ResetsAtUtc, nowUtc, zone) : string.Empty;
+        var limitAndReset = string.IsNullOrEmpty(reset) ? limit : $"{limit} · {reset}";
+
+        return alert.Kind switch
+        {
+            AlertKind.Approaching => (_text.Format("AlertApproachingFormat", providerDisplayName, Percent(alert.Window?.UsedPercent)), limitAndReset),
+            AlertKind.Spent => (_text.Format("AlertSpentFormat", providerDisplayName), limitAndReset),
+            AlertKind.Reset => (_text.Format("AlertResetFormat", providerDisplayName), _text.Format("AlertResetBodyFormat", limit)),
+            AlertKind.ClaudeLinkBroken => (_text["AlertClaudeLink"], _text["AlertClaudeLinkBody"]),
+            _ => (_text["AlertCodexUnreadable"], _text["AlertCodexUnreadableBody"]),
+        };
+    }
+
     /// <summary>True once a reported reset moment has passed.</summary>
     public static bool IsPast(DateTimeOffset? resetsAtUtc, DateTimeOffset nowUtc) =>
         resetsAtUtc is { } resetsAt && resetsAt <= nowUtc;

@@ -290,4 +290,47 @@
     <value>Closest to its limit</value>
     <comment>Whichever of a provider's limits is the most used.</comment>
   </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Notifications</value>
+    <comment>Submenu in the strip and tray menus: when to show a notification.</comment>
+  </data>
+  <data name="NotificationsOff" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="NotificationsAtFormat" xml:space="preserve">
+    <value>At {0}</value>
+    <comment>A threshold item, {0} is a percentage such as 75%.</comment>
+  </data>
+  <data name="AlertApproachingFormat" xml:space="preserve">
+    <value>{0}: {1} used</value>
+    <comment>Notification title. {0} provider, {1} percentage.</comment>
+  </data>
+  <data name="AlertSpentFormat" xml:space="preserve">
+    <value>{0}: limit reached</value>
+    <comment>Notification title. {0} provider.</comment>
+  </data>
+  <data name="AlertResetFormat" xml:space="preserve">
+    <value>{0}: limit has reset</value>
+    <comment>Notification title. {0} provider.</comment>
+  </data>
+  <data name="AlertResetBodyFormat" xml:space="preserve">
+    <value>{0} is available again.</value>
+    <comment>Notification text. {0} is a limit such as "5-hour limit".</comment>
+  </data>
+  <data name="AlertClaudeLink" xml:space="preserve">
+    <value>Claude Code is disconnected</value>
+  </data>
+  <data name="AlertClaudeLinkBody" xml:space="preserve">
+    <value>Open Connections to reconnect it.</value>
+  </data>
+  <data name="AlertCodexUnreadable" xml:space="preserve">
+    <value>Can't read Codex</value>
+  </data>
+  <data name="AlertCodexUnreadableBody" xml:space="preserve">
+    <value>No data for a few minutes.</value>
+  </data>
+  <data name="AlertMoreFormat" xml:space="preserve">
+    <value>+{0} more</value>
+    <comment>Added when several notifications come at once.</comment>
+  </data>
 </root>
