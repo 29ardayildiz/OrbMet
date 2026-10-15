@@ -15,6 +15,7 @@ public sealed class ProviderSlotViewModel : ObservableObject
     private ProviderUsage? _usage;
     private double? _ringPercent;
     private double? _clockFraction;
+    private bool _isWorking;
     private System.Windows.Media.Brush _goodBrush;
     private bool _isExhausted;
     private bool _hasReading;
@@ -66,6 +67,19 @@ public sealed class ProviderSlotViewModel : ObservableObject
     {
         get => _clockFraction;
         private set => SetProperty(ref _clockFraction, value);
+    }
+
+    /// <summary>The agent is mid-turn, by its session files; only while "Show when an agent is working" is on.</summary>
+    public bool IsWorking
+    {
+        get => _isWorking;
+        internal set
+        {
+            if (SetProperty(ref _isWorking, value))
+            {
+                Rebuild();
+            }
+        }
     }
 
     /// <summary>The colour this provider's ring, bars and figure take while below the warning thresholds.</summary>
@@ -225,6 +239,11 @@ public sealed class ProviderSlotViewModel : ObservableObject
         if (ClockFraction is { } elapsed)
         {
             AccessibleText += ", " + words.Format("WindowElapsedFormat", text.Percent(Math.Round(elapsed * 100)));
+        }
+
+        if (IsWorking)
+        {
+            AccessibleText += ", " + words["AgentWorking"];
         }
 
         if ((Message ?? Footnote) is { } note)

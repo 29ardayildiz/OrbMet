@@ -33,6 +33,10 @@ public sealed class UsageRing : FrameworkElement
     // than a second hue (Pulse's measures).
     private const double ClockGap = 3;
     private const double ClockThickness = 2;
+
+    // The working dot: on the clock's track, once round in 1.6 seconds.
+    private const double WorkingDotDiameter = 4.5;
+    private static readonly TimeSpan WorkingPeriod = TimeSpan.FromSeconds(1.6);
     private static readonly Pen ClockTrackPen = FrozenPen(Color.FromArgb(0x29, 0xFF, 0xFF, 0xFF), round: false);
     private static readonly Pen ClockPen = FrozenPen(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF), round: true);
 
@@ -100,7 +104,14 @@ public sealed class UsageRing : FrameworkElement
         typeof(UsageRing),
         new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender, OnIsRefreshingChanged));
 
+    public static readonly DependencyProperty IsWorkingProperty = DependencyProperty.Register(
+        nameof(IsWorking),
+        typeof(bool),
+        typeof(UsageRing),
+        new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender, OnIsWorkingChanged));
+
     private readonly Stopwatch _refreshClock = new();
+    private readonly Stopwatch _workingClock = new();
     private bool _animating;
 
     // Two layers: a blurred copy of the arc underneath, the ring itself on
@@ -150,6 +161,17 @@ public sealed class UsageRing : FrameworkElement
     {
         get => (double?)GetValue(ClockFractionProperty);
         set => SetValue(ClockFractionProperty, value);
+    }
+
+    /// <summary>
+    /// The agent is mid-turn (design.md 6.7): a small white dot circles just
+    /// outside the ring, on the window clock's track. With animations off it
+    /// rests at 12 o'clock.
+    /// </summary>
+    public bool IsWorking
+    {
+        get => (bool)GetValue(IsWorkingProperty);
+        set => SetValue(IsWorkingProperty, value);
     }
 
     /// <summary>The provider's colour below the warning thresholds; null is the default green.</summary>
@@ -233,6 +255,14 @@ public sealed class UsageRing : FrameworkElement
             {
                 ring.DrawGeometry(null, ClockPen, Arc(center, clockRadius, 0, elapsed));
             }
+        }
+
+        if (IsWorking)
+        {
+            var turns = Motion.Enabled ? _workingClock.Elapsed.TotalSeconds / WorkingPeriod.TotalSeconds : 0;
+            var orbit = size / 2 + ClockGap + ClockThickness / 2;
+            var dot = PointOnCircle(center, orbit, (turns - Math.Floor(turns)) * 360 - 90);
+            ring.DrawEllipse(UsagePalette.Text, null, dot, WorkingDotDiameter / 2, WorkingDotDiameter / 2);
         }
 
         if (arc is not null && IsSelected)
@@ -415,28 +445,52 @@ public sealed class UsageRing : FrameworkElement
         var ring = (UsageRing)d;
         if ((bool)e.NewValue)
         {
-            ring.StartAnimating();
+            ring._refreshClock.Restart();
         }
         else
         {
-            ring.StopAnimating();
+            ring._refreshClock.Reset();
         }
+
+        ring.UpdateAnimating();
     }
 
-    // Frames are only requested while a refresh is in flight; an idle ring costs nothing.
-    private void StartAnimating()
+    private static void OnIsWorkingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        _refreshClock.Restart();
-        if (!_animating)
+        var ring = (UsageRing)d;
+        if ((bool)e.NewValue)
+        {
+            ring._workingClock.Restart();
+        }
+        else
+        {
+            ring._workingClock.Reset();
+        }
+
+        ring.UpdateAnimating();
+    }
+
+    // Frames are only requested while a refresh is in flight or an agent is
+    // working (and motion is on); an idle ring costs nothing.
+    private void UpdateAnimating()
+    {
+        var wanted = IsRefreshing || (IsWorking && Motion.Enabled);
+        if (wanted && !_animating)
         {
             _animating = true;
             CompositionTarget.Rendering += OnRendering;
+        }
+        else if (!wanted && _animating)
+        {
+            _animating = false;
+            CompositionTarget.Rendering -= OnRendering;
         }
     }
 
     private void StopAnimating()
     {
         _refreshClock.Reset();
+        _workingClock.Reset();
         if (_animating)
         {
             _animating = false;

@@ -64,6 +64,23 @@ public partial class MainWindow : Window
     private bool _exitRequested;
     private bool _cleanedUp;
 
+    // Folding when idle: how long the pointer has been away, and whether the
+    // strip is the sliver now (design.md 4.3).
+    private readonly DispatcherTimer _idleWatch = new() { Interval = TimeSpan.FromMilliseconds(100) };
+    private readonly Stopwatch _awayFor = new();
+    private bool _collapsed;
+    private Rect _sliverTarget;
+
+    // Following the pointer's display: the display it was last seen on, which
+    // must be seen twice running before the strip moves there.
+    private readonly DispatcherTimer _displayFollow = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    private string? _pendingDisplay;
+
+    // Whether each agent is mid-turn, read off the UI thread every few
+    // seconds while "Show when an agent is working" is on (design.md 6.7).
+    private readonly DispatcherTimer _activityWatch = new() { Interval = TimeSpan.FromSeconds(3) };
+    private bool _readingActivity;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -140,6 +157,12 @@ public partial class MainWindow : Window
         _viewModel.ReadCompleted += (_, _) => notifier.Check();
         UpdateMenu.Start(_tray, ExitApplication);
 
+        _idleWatch.Tick += (_, _) => WatchIdle();
+        _displayFollow.Tick += (_, _) => FollowPointerDisplay();
+        _activityWatch.Tick += async (_, _) => await ReadActivityAsync();
+        AppearanceMenu.Changed += ApplyStripOptions;
+        ApplyStripOptions();
+
         _card = new DetailCardWindow();
 
         // While the card is up, the real pointer is sampled to decide when it
@@ -189,6 +212,10 @@ public partial class MainWindow : Window
             fullest?.IsExhausted == true,
             fullest?.GoodBrush,
             string.Join("\n", lines.Prepend("OrbMet")));
+        if (_collapsed)
+        {
+            ColourSliver();
+        }
     }
 
     /// <summary>
@@ -206,6 +233,252 @@ public partial class MainWindow : Window
         UsePlan(_position.Dock, _position.Reversed);
         var (x, y) = PanelLayout.RailOrigin(_position, area, _plan.Size.Width, _plan.Size.Height);
         ShowPlanAt(new Point(x, y), centre: true);
+        if (_collapsed)
+        {
+            ShowSliver();
+        }
+    }
+
+    /// <summary>Starts or stops folding and display following as the Appearance menu says.</summary>
+    private void ApplyStripOptions()
+    {
+        var options = AppearanceMenu.Current;
+        if (options.CollapseWhenIdle)
+        {
+            _idleWatch.Start();
+        }
+        else
+        {
+            _idleWatch.Stop();
+            Expand();
+        }
+
+        if (options.FollowPointer)
+        {
+            _displayFollow.Start();
+        }
+        else
+        {
+            _displayFollow.Stop();
+            _pendingDisplay = null;
+        }
+
+        // Off means no session file is opened at all.
+        if (options.ShowActivity)
+        {
+            if (!_activityWatch.IsEnabled)
+            {
+                _activityWatch.Start();
+                _ = ReadActivityAsync();
+            }
+        }
+        else
+        {
+            _activityWatch.Stop();
+            foreach (var slot in _viewModel.Providers)
+            {
+                slot.IsWorking = false;
+            }
+        }
+    }
+
+    private async Task ReadActivityAsync()
+    {
+        if (_readingActivity || !AppearanceMenu.Current.ShowActivity)
+        {
+            return;
+        }
+
+        _readingActivity = true;
+        try
+        {
+            var ids = _viewModel.Providers.Select(slot => slot.ProviderId).ToList();
+            var working = await Task.Run(() => ids.ToDictionary(
+                id => id,
+                id => AgentActivity.SessionsRoot(id) is { } root && AgentActivity.IsWorking(id, root, DateTimeOffset.UtcNow)));
+
+            // Turned off while reading: say nothing.
+            if (!AppearanceMenu.Current.ShowActivity)
+            {
+                return;
+            }
+
+            foreach (var slot in _viewModel.Providers)
+            {
+                slot.IsWorking = working.GetValueOrDefault(slot.ProviderId);
+            }
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+        }
+        finally
+        {
+            _readingActivity = false;
+        }
+    }
+
+    /// <summary>
+    /// Folds a docked strip to its sliver once the pointer has been off it,
+    /// its card and its menu for the wait picked in the menu (10 s to 2 min);
+    /// never mid-drag or mid-change, and never a floating strip.
+    /// </summary>
+    private void WatchIdle()
+    {
+        if (_collapsed)
+        {
+            return;
+        }
+
+        var busy = !IsVisible || _pressed || Reshaping || _card.IsVisible || ContextMenuIsOpen()
+            || _shownDock == PanelDock.Floating;
+        if (busy || PointerPosition.InDips(this) is not { } pointer
+            || _plan.Outline.FillContains(new Point(pointer.X - _origin.X, pointer.Y - _origin.Y))
+            || _sliverTarget.Contains(pointer))
+        {
+            // On the sliver's target counts as here, or the strip just opened
+            // from it would fold again before the pointer reached it.
+            _awayFor.Reset();
+            return;
+        }
+
+        if (!_awayFor.IsRunning)
+        {
+            _awayFor.Restart();
+        }
+        else if (_awayFor.Elapsed >= AppearanceMenu.Current.CollapseDelay)
+        {
+            Collapse();
+        }
+    }
+
+    private void Collapse()
+    {
+        _collapsed = true;
+        _awayFor.Reset();
+        Outline.Visibility = Visibility.Hidden;
+        SlotLayer.Visibility = Visibility.Hidden;
+        ShowSliver();
+        SliverLayer.Visibility = Visibility.Visible;
+    }
+
+    private void Expand()
+    {
+        if (!_collapsed)
+        {
+            return;
+        }
+
+        _collapsed = false;
+        _awayFor.Reset();
+        SliverLayer.Visibility = Visibility.Collapsed;
+        Outline.Visibility = Visibility.Visible;
+        SlotLayer.Visibility = Visibility.Visible;
+    }
+
+    // The pointer reaching the sliver, or its wider target, opens the strip.
+    private void OnSliverEnter(object sender, MouseEventArgs e) => Expand();
+
+    /// <summary>
+    /// Lays the sliver against the screen edge the strip is docked to, level
+    /// with the strip (in a corner, with its upright arm), and colours it:
+    /// neutral, or the warning colour once any ring is past 75%, the spent
+    /// colour once one is spent (design.md 4.3).
+    /// </summary>
+    private void ShowSliver()
+    {
+        var strip = new Rect(_origin, _plan.Size);
+        var (area, _) = Displays.At(new Point(strip.X + strip.Width / 2, strip.Y + strip.Height / 2), this);
+        var length = PanelMetrics.SliverLength;
+        var thickness = PanelMetrics.SliverThickness;
+        var reach = PanelMetrics.SliverTarget;
+
+        Rect sliver;
+        if (PanelLayout.IsLeft(_shownDock) || PanelLayout.IsRight(_shownDock))
+        {
+            var arm = _plan.VerticalArm;
+            arm.Offset(_origin.X, _origin.Y);
+            var top = arm.Y + arm.Height / 2 - length / 2;
+            var left = PanelLayout.IsLeft(_shownDock);
+            sliver = new Rect(left ? area.X : area.Right - thickness, top, thickness, length);
+            _sliverTarget = new Rect(left ? area.X : area.Right - reach, top, reach, length);
+        }
+        else
+        {
+            var arm = _plan.HorizontalArm;
+            arm.Offset(_origin.X, _origin.Y);
+            var left = arm.X + arm.Width / 2 - length / 2;
+            var top = PanelLayout.IsTop(_shownDock);
+            sliver = new Rect(left, top ? area.Y : area.Bottom - thickness, length, thickness);
+            _sliverTarget = new Rect(left, top ? area.Y : area.Bottom - reach, length, reach);
+        }
+
+        Lay(Sliver, sliver);
+        Lay(SliverTarget, _sliverTarget);
+        ColourSliver();
+
+        void Lay(FrameworkElement element, Rect onScreen)
+        {
+            System.Windows.Controls.Canvas.SetLeft(element, onScreen.X - _windowAt.X);
+            System.Windows.Controls.Canvas.SetTop(element, onScreen.Y - _windowAt.Y);
+            element.Width = onScreen.Width;
+            element.Height = onScreen.Height;
+        }
+    }
+
+    private void ColourSliver()
+    {
+        var slots = _viewModel.Providers;
+        if (slots.Any(slot => slot.IsSpent))
+        {
+            Sliver.Fill = UsagePalette.Spent;
+            Sliver.Stroke = null;
+        }
+        else if (slots.Any(slot => slot.RingPercent >= 75))
+        {
+            Sliver.Fill = UsagePalette.Warning;
+            Sliver.Stroke = null;
+        }
+        else
+        {
+            // Black with a faint white edge reads on dark and light desktops alike.
+            Sliver.Fill = UsagePalette.Surface;
+            Sliver.Stroke = UsagePalette.RingTrack;
+        }
+    }
+
+    /// <summary>
+    /// Moves the strip to the display the pointer has settled on, keeping its
+    /// edge and place along it (design.md 9). Not while it is held, its card
+    /// or menu is open, or it is hidden.
+    /// </summary>
+    private void FollowPointerDisplay()
+    {
+        if (!IsVisible || _pressed || _card.IsVisible || ContextMenuIsOpen()
+            || PointerPosition.InDips(this) is not { } pointer)
+        {
+            _pendingDisplay = null;
+            return;
+        }
+
+        var (_, under) = Displays.At(pointer, this);
+        var (_, shown) = Displays.For(_position.DisplayId, this);
+        if (under == shown)
+        {
+            _pendingDisplay = null;
+            return;
+        }
+
+        // Seen twice running: the pointer has settled there, not crossed through.
+        if (_pendingDisplay != under)
+        {
+            _pendingDisplay = under;
+            return;
+        }
+
+        _pendingDisplay = null;
+        _position = _position with { DisplayId = under };
+        _positionStore.Save(_position);
+        Place();
     }
 
     /// <summary>The largest outline with <see cref="PanelMetrics.WindowRoom"/> on every side.</summary>
@@ -799,6 +1072,9 @@ public partial class MainWindow : Window
         SystemParameters.StaticPropertyChanged -= OnSystemParameterChanged;
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         _pointerSampler.Stop();
+        _idleWatch.Stop();
+        _displayFollow.Stop();
+        _activityWatch.Stop();
         _card.Close();
         _viewModel.Dispose();
         UpdateMenu.Stop();

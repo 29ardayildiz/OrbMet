@@ -21,6 +21,11 @@ starts to matter: green below 50%, yellow below 75%, red above.
   ring's colour (warnings stay yellow and red), and an optional forecast on
   the card of whether a limit lasts until its reset. The forecast is always
   labelled as one and never changes the figures.
+- Also under **Appearance**, all off until you turn them on: fold a docked
+  strip to a thin line at the screen edge while you are not using it (it
+  turns red when a limit is close), move the strip to whichever display the
+  pointer is on, and show a dot circling a ring while Claude Code or Codex is
+  working (see Privacy).
 - Hover a ring to see every limit it reports (5-hour, weekly, per model),
   how much of each is used and when it resets.
 - Click a ring to refresh it.
@@ -105,7 +110,13 @@ request of its own is the update check:
   and a one-way hash of the session id, in `%LOCALAPPDATA%\OrbMet`, and
   discards the rest.
 - Codex usage comes from `codex app-server` and is kept in memory.
-- Prompts, transcripts and credentials are never read or stored.
+- Credentials are never read. Prompts and transcripts are never stored.
+- Transcripts are read only if you turn on **Show when an agent is working**
+  (off by default). Then, every few seconds, OrbMet opens the last 128 KB of
+  the session files Claude Code and Codex wrote in the past five minutes
+  (`~/.claude/projects`, `~/.codex/sessions`) and looks only at each record's
+  type, stop reason and time, plus Claude Code's own "Request interrupted"
+  marker. Nothing from them is kept, logged or sent.
 
 ## How the numbers are shown
 

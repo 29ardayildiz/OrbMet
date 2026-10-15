@@ -48,5 +48,17 @@
 
         <!-- One SlotView per provider, positioned from the outline's plan. -->
         <Canvas x:Name="SlotLayer" />
+
+        <!-- Folded while idle (design.md 4.3): the sliver against the screen
+             edge, and round it a wider target the pointer can find, nearly
+             transparent so the window still takes the pointer there. -->
+        <Canvas x:Name="SliverLayer" Visibility="Collapsed">
+            <Rectangle x:Name="SliverTarget" Fill="#01000000" MouseEnter="OnSliverEnter" />
+            <Rectangle x:Name="Sliver"
+                       RadiusX="3"
+                       RadiusY="3"
+                       StrokeThickness="1"
+                       IsHitTestVisible="False" />
+        </Canvas>
     </Grid>
 </Window>

@@ -15,6 +15,7 @@
                             Percent="{Binding RingPercent}"
                             IsExhausted="{Binding IsExhausted}"
                             ClockFraction="{Binding ClockFraction}"
+                            IsWorking="{Binding IsWorking}"
                             GoodBrush="{Binding GoodBrush}"
                             IsSelected="{Binding IsSelected}"
                             IsRefreshing="{Binding IsRefreshing}"

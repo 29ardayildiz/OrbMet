@@ -51,6 +51,15 @@ public static class PanelMetrics
     /// <summary>In the L, between each arm's slot and the corner block.</summary>
     public const double CornerArmGap = 10;
 
+    /// <summary>
+    /// Folded while idle (design.md 4.3): the sliver against the screen edge
+    /// and the wider strip of it the pointer can find. Pulse's measures; how
+    /// long the pointer must be away first is the user's pick.
+    /// </summary>
+    public const double SliverThickness = 6;
+    public const double SliverLength = 96;
+    public const double SliverTarget = 20;
+
     /// <summary>The soft concave corner where the L's arms meet.</summary>
     public const double CornerInnerRadius = 18;
 

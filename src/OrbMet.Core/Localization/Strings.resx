@@ -433,4 +433,26 @@
     <value>{0} of the window passed</value>
     <comment>Spoken with the ring when the window clock is on.</comment>
   </data>
+  <data name="CollapseWhenIdle" xml:space="preserve">
+    <value>Fold when idle</value>
+    <comment>Appearance item: a docked strip folds to a sliver at the screen edge while the pointer is elsewhere.</comment>
+  </data>
+  <data name="FollowPointer" xml:space="preserve">
+    <value>Follow the pointer's display</value>
+    <comment>Appearance item: the strip moves to the display the pointer settles on.</comment>
+  </data>
+  <data name="ShowActivity" xml:space="preserve">
+    <value>Show when an agent is working</value>
+    <comment>Appearance item: a dot circles a ring while Claude Code or Codex is mid-turn.</comment>
+  </data>
+  <data name="AgentWorking" xml:space="preserve">
+    <value>working</value>
+    <comment>Spoken with the ring while the agent is mid-turn.</comment>
+  </data>
+  <data name="AfterSecondsFormat" xml:space="preserve">
+    <value>After {0} seconds</value>
+  </data>
+  <data name="AfterMinutesFormat" xml:space="preserve">
+    <value>After {0} minutes</value>
+  </data>
 </root>

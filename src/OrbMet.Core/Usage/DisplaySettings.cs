@@ -20,7 +20,9 @@ public enum RingColour
 /// <summary>
 /// The "Appearance" choices (design.md 10, Görünüm): the window clock arc (on
 /// by default), figures as remaining rather than used, the forecast on the
-/// card (both off), and each provider's ring colour (green).
+/// card, each provider's ring colour (green), and for the strip: folding to a
+/// sliver when idle, following the pointer's display and showing when an
+/// agent is working (all off).
 /// </summary>
 public sealed record DisplaySettings
 {
@@ -33,6 +35,26 @@ public sealed record DisplaySettings
     public RingColour ClaudeColour { get; init; } = RingColour.Green;
 
     public RingColour CodexColour { get; init; } = RingColour.Green;
+
+    /// <summary>A docked strip folds to a sliver at the screen edge while the pointer is elsewhere.</summary>
+    public bool CollapseWhenIdle { get; init; }
+
+    /// <summary>The waits the menu offers before folding, in seconds; 30 unless the user picked another.</summary>
+    public static readonly IReadOnlyList<int> CollapseDelays = new[] { 10, 30, 120 };
+
+    /// <summary>How long the pointer must be away before the strip folds; one of <see cref="CollapseDelays"/>.</summary>
+    public int CollapseAfterSeconds { get; init; } = 30;
+
+    /// <summary>The wait in force: an unknown stored value is the default 30 seconds.</summary>
+    [JsonIgnore]
+    public TimeSpan CollapseDelay =>
+        TimeSpan.FromSeconds(CollapseDelays.Contains(CollapseAfterSeconds) ? CollapseAfterSeconds : 30);
+
+    /// <summary>The strip moves to whichever display the pointer settles on.</summary>
+    public bool FollowPointer { get; init; }
+
+    /// <summary>A dot circles a ring while that agent is mid-turn, read from the tail of its session files.</summary>
+    public bool ShowActivity { get; init; }
 
     public RingColour ColourFor(ProviderId providerId) =>
         providerId == ProviderId.Codex ? CodexColour : ClaudeColour;

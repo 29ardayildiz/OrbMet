@@ -65,6 +65,11 @@ internal static class AppearanceMenu
             menu.Items.Add(ColourMenu(id, name));
         }
 
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CollapseMenu());
+        menu.Items.Add(Toggle("FollowPointer", settings => settings.FollowPointer, settings => settings with { FollowPointer = !settings.FollowPointer }));
+        menu.Items.Add(Toggle("ShowActivity", settings => settings.ShowActivity, settings => settings with { ShowActivity = !settings.ShowActivity }));
+
         void Show() => menu.Header = Localizer.Instance["Appearance"];
         Show();
         Localizer.Instance.LanguageChanged += (_, _) => Show();
@@ -86,6 +91,42 @@ internal static class AppearanceMenu
         Changed += Show;
         Localizer.Instance.LanguageChanged += (_, _) => Show();
         return item;
+    }
+
+    /// <summary>"Fold when idle": off, or after 10 seconds, 30 seconds or 2 minutes away (design.md 4.3).</summary>
+    private static MenuItem CollapseMenu()
+    {
+        var menu = new MenuItem();
+        var off = new MenuItem();
+        off.Click += (_, _) => Use(Current with { CollapseWhenIdle = false });
+        menu.Items.Add(off);
+        foreach (var seconds in DisplaySettings.CollapseDelays)
+        {
+            var item = new MenuItem { Tag = seconds };
+            item.Click += (_, _) => Use(Current with { CollapseWhenIdle = true, CollapseAfterSeconds = seconds });
+            menu.Items.Add(item);
+        }
+
+        void Show()
+        {
+            var text = Localizer.Instance.Text;
+            menu.Header = text["CollapseWhenIdle"];
+            off.Header = text["NotificationsOff"];
+            off.IsChecked = !Current.CollapseWhenIdle;
+            foreach (var item in menu.Items.OfType<MenuItem>().Where(item => item.Tag is int))
+            {
+                var seconds = (int)item.Tag;
+                item.Header = seconds < 60
+                    ? text.Format("AfterSecondsFormat", seconds)
+                    : text.Format("AfterMinutesFormat", seconds / 60);
+                item.IsChecked = Current.CollapseWhenIdle && Current.CollapseDelay == TimeSpan.FromSeconds(seconds);
+            }
+        }
+
+        Show();
+        Changed += Show;
+        Localizer.Instance.LanguageChanged += (_, _) => Show();
+        return menu;
     }
 
     private static MenuItem ColourMenu(ProviderId providerId, string providerName)
