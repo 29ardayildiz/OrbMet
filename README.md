@@ -68,7 +68,7 @@ starts to matter: green below 50%, yellow below 75%, red above.
 ## Requirements
 
 - Windows 10 or 11, x64
-- [Claude Code](https://docs.claude.com/en/docs/claude-code), [Codex CLI](https://github.com/openai/codex), or both
+- [Claude Code](https://docs.claude.com/en/docs/claude-code) in the terminal, [Codex CLI](https://github.com/openai/codex), or both
 - Optionally [Antigravity](https://antigravity.google) or Antigravity IDE
 
 ## Install
@@ -122,6 +122,8 @@ response. Good to know:
 - **Disconnect** puts your previous status line back exactly as it was.
 - Usage updates when Claude Code finishes a response. OrbMet never sends
   prompts to make data appear.
+- Only the terminal CLI runs the status line. If you use Claude Code from the
+  VS Code extension or the desktop app, OrbMet gets no data from it.
 - If you move the OrbMet folder, the Connections window says so and offers
   **Reconnect**.
 
