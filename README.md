@@ -213,7 +213,7 @@ dotnet test -c Debug --no-build
 Release packages:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -Version 0.7.0
+powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -Version 0.7.1
 ```
 
 This writes the installer and the zip to `artifacts\`, each with a `.sha256`
