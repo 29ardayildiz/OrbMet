@@ -6,16 +6,21 @@ using OrbMet.Core.Models;
 namespace OrbMet.Core.Providers.Antigravity;
 
 /// <summary>
-/// Reads Antigravity's quotas from its own language server, which is the only
-/// thing that knows them, so they exist only while Antigravity is open. Every
-/// server and every port it listens on is asked over plain HTTP on 127.0.0.1
-/// (the HTTPS port answers HTTP with 400), and the first reply holding limits
-/// wins. The per-launch code goes to that address alone and is never kept.
+/// Reads Antigravity's quotas from what knows them. While Antigravity or
+/// Antigravity IDE is open that is its language server: every server and
+/// every port it listens on is asked over plain HTTP on 127.0.0.1 (the HTTPS
+/// port answers HTTP with 400), and the first reply holding limits wins. The
+/// per-launch code goes to that address alone and is never kept. When none
+/// is open or none answers, the Antigravity CLI is asked instead, if it is
+/// installed (<see cref="AntigravityCli"/>).
 /// </summary>
 public sealed class AntigravityUsageProvider : IUsageProvider
 {
     private const string QuotaPath = "/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary";
     private const int MaxReplyBytes = 1024 * 1024;
+
+    /// <summary>How long agy may take to answer; a read measured 3 s.</summary>
+    private static readonly TimeSpan CliPrintTimeout = TimeSpan.FromSeconds(15);
 
     private static readonly HttpClient SharedClient = new(new SocketsHttpHandler
     {
@@ -30,20 +35,31 @@ public sealed class AntigravityUsageProvider : IUsageProvider
 
     private readonly Func<IReadOnlyList<AntigravityServer>> _find;
     private readonly Func<int, string, CancellationToken, Task<string?>> _ask;
+    private readonly Func<string?> _locateCli;
+    private readonly Func<string, CancellationToken, Task<AntigravityCliOutput?>> _runCli;
     private readonly Func<DateTimeOffset> _clock;
     private readonly TimeSpan _timeout;
+    private readonly TimeSpan _cliTimeout;
 
     /// <param name="ask">Sends the quota question to a port with the code; returns the reply body or null.</param>
+    /// <param name="locateCli">The agy executable, or null when the CLI is not installed.</param>
+    /// <param name="runCli">Runs agy's <c>/usage</c>; null when it cannot be started.</param>
     public AntigravityUsageProvider(
         Func<IReadOnlyList<AntigravityServer>>? find = null,
         Func<int, string, CancellationToken, Task<string?>>? ask = null,
         Func<DateTimeOffset>? clock = null,
-        TimeSpan? timeout = null)
+        TimeSpan? timeout = null,
+        Func<string?>? locateCli = null,
+        Func<string, CancellationToken, Task<AntigravityCliOutput?>>? runCli = null,
+        TimeSpan? cliTimeout = null)
     {
         _find = find ?? AntigravityServers.Find;
         _ask = ask ?? AskAsync;
+        _locateCli = locateCli ?? AntigravityCli.Locate;
+        _runCli = runCli ?? ((path, token) => AntigravityCli.RunUsageAsync(path, CliPrintTimeout, token));
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _timeout = timeout ?? TimeSpan.FromSeconds(10);
+        _cliTimeout = cliTimeout ?? CliPrintTimeout + TimeSpan.FromSeconds(5);
     }
 
     public ProviderId ProviderId => ProviderId.Antigravity;
@@ -54,11 +70,20 @@ public sealed class AntigravityUsageProvider : IUsageProvider
     {
         var now = _clock();
         var servers = _find();
-        if (servers.Count == 0)
+        var fromServers = servers.Count == 0
+            ? Failure(now, ConnectionState.AwaitingData, "antigravity-not-running")
+            : await ReadServersAsync(servers, now, cancellationToken).ConfigureAwait(false);
+        if (fromServers.Windows.Count > 0 || _locateCli() is not { } agy)
         {
-            return Failure(now, ConnectionState.AwaitingData, "antigravity-not-running");
+            return fromServers;
         }
 
+        return await ReadCliAsync(agy, now, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<ProviderSnapshot> ReadServersAsync(
+        IReadOnlyList<AntigravityServer> servers, DateTimeOffset now, CancellationToken cancellationToken)
+    {
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         limit.CancelAfter(_timeout);
 
@@ -83,18 +108,7 @@ public sealed class AntigravityUsageProvider : IUsageProvider
                         continue;
                     }
 
-                    return new ProviderSnapshot
-                    {
-                        ProviderId = ProviderId.Antigravity,
-                        SourceKind = SourceKind.AntigravityLanguageServer,
-                        AccountScopeKey = "antigravity",
-                        ObservedAtUtc = now,
-                        ReceivedAtUtc = now,
-                        LastAttemptAtUtc = now,
-                        ConnectionState = ConnectionState.Ready,
-                        Freshness = Freshness.Fresh,
-                        Windows = windows,
-                    };
+                    return Read(now, SourceKind.AntigravityLanguageServer, windows);
                 }
             }
         }
@@ -108,10 +122,59 @@ public sealed class AntigravityUsageProvider : IUsageProvider
             : Failure(now, ConnectionState.Error, "antigravity-not-answering");
     }
 
-    private static ProviderSnapshot Failure(DateTimeOffset at, ConnectionState state, string errorCode) => new()
+    private async Task<ProviderSnapshot> ReadCliAsync(string agy, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        limit.CancelAfter(_cliTimeout);
+
+        AntigravityCliOutput? output;
+        try
+        {
+            output = await _runCli(agy, limit.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Failure(now, ConnectionState.Error, "timeout", SourceKind.AntigravityCli);
+        }
+
+        if (output is null)
+        {
+            return Failure(now, ConnectionState.Error, "antigravity-cli-failed", SourceKind.AntigravityCli);
+        }
+
+        if (AntigravityQuotaParser.ParseCliOutput(output.StandardOutput) is { } windows)
+        {
+            return windows.Count > 0
+                ? Read(now, SourceKind.AntigravityCli, windows)
+                : Failure(now, ConnectionState.Ready, "antigravity-no-limits", SourceKind.AntigravityCli);
+        }
+
+        // Without a Google sign-in agy says "authentication required" (stderr,
+        // 2026-11); "authentication failed or timed out" alone may be a timeout.
+        return output.StandardError.Contains("authentication required", StringComparison.OrdinalIgnoreCase) ||
+               output.StandardOutput.Contains("authentication required", StringComparison.OrdinalIgnoreCase)
+            ? Failure(now, ConnectionState.SignInRequired, "antigravity-cli-signed-out", SourceKind.AntigravityCli)
+            : Failure(now, ConnectionState.Error, "antigravity-cli-failed", SourceKind.AntigravityCli);
+    }
+
+    private static ProviderSnapshot Read(DateTimeOffset at, SourceKind source, IReadOnlyList<UsageWindow> windows) => new()
     {
         ProviderId = ProviderId.Antigravity,
-        SourceKind = SourceKind.AntigravityLanguageServer,
+        SourceKind = source,
+        AccountScopeKey = "antigravity",
+        ObservedAtUtc = at,
+        ReceivedAtUtc = at,
+        LastAttemptAtUtc = at,
+        ConnectionState = ConnectionState.Ready,
+        Freshness = Freshness.Fresh,
+        Windows = windows,
+    };
+
+    private static ProviderSnapshot Failure(
+        DateTimeOffset at, ConnectionState state, string errorCode, SourceKind source = SourceKind.AntigravityLanguageServer) => new()
+    {
+        ProviderId = ProviderId.Antigravity,
+        SourceKind = source,
         AccountScopeKey = "antigravity",
         ReceivedAtUtc = at,
         LastAttemptAtUtc = at,

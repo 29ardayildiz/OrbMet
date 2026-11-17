@@ -6,4 +6,5 @@ public enum SourceKind
     ClaudeStatusLine,
     CodexAppServer,
     AntigravityLanguageServer,
+    AntigravityCli,
 }

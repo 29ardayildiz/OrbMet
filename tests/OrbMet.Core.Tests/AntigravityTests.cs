@@ -18,7 +18,18 @@ public class AntigravityTests
         {"response":{"groups":[{"displayName":"Gemini Models","buckets":[{"bucketId":"gemini-weekly","window":"weekly","remainingFraction":0.9,"resetTime":"2026-10-22T08:00:00Z"},{"bucketId":"gemini-5h","window":"5h","remainingFraction":0.75,"resetTime":"2026-10-16T02:00:00Z"}]},{"displayName":"Claude and GPT models","buckets":[{"bucketId":"3p-weekly","window":"weekly","remainingFraction":0.5,"resetTime":"2026-10-22T08:00:00Z"},{"bucketId":"3p-5h","window":"5h","remainingFraction":0.4,"resetTime":"2026-10-16T01:00:00Z"}]}]}}
         """;
 
+    // What agy -p /usage --output-format json printed on 2026-11-17, cut to
+    // the fields read and a line of its text table; it carries no account details.
+    private const string CliUsage = """
+        {"conversation_id":"","status":"SUCCESS","response":"Gemini Models\tWeekly Limit Remaining\t98%\t2026-11-24T12:44:53Z\n","duration_seconds":0,"num_turns":0,"usage":{"input_tokens":0,"output_tokens":0,"thinking_tokens":0,"cache_read_tokens":0,"total_tokens":0},"command":{"name":"usage","data":{"groups":[{"name":"Gemini Models","buckets":[{"id":"gemini-weekly","window":"weekly","remaining_fraction":0.9811149835586548,"reset_time":"2026-11-24T12:44:53Z"},{"id":"gemini-5h","window":"5h","remaining_fraction":0.9726622700691223,"reset_time":"2026-11-17T17:44:53Z"}]},{"name":"Claude and GPT models","buckets":[{"id":"3p-weekly","window":"weekly","remaining_fraction":1,"reset_time":"2026-11-24T12:57:32Z"},{"id":"3p-5h","window":"5h","remaining_fraction":1,"reset_time":"2026-11-17T17:57:32Z"}]},{"name":"Gemini 4 Argon","buckets":[{"id":"gemini-argon-wtu-weekly","window":"weekly","remaining_fraction":1,"reset_time":"2026-11-24T12:57:32Z"}]}]}}}
+        """;
+
+    // What agy printed without a Google sign-in, as reported for the CLI of 2026-11.
+    private const string CliSignedOut = """{"conversation_id":"","status":"ERROR","response":"","error":"authentication failed or timed out"}""";
+
     private static readonly DateTimeOffset Now = new(2026, 10, 15, 20, 0, 0, TimeSpan.Zero);
+
+    private static readonly Func<string?> NoCli = () => null;
 
     [Fact]
     public void EachBucketIsAWindowWithItsGroupAndLength()
@@ -138,7 +149,8 @@ public class AntigravityTests
     [Fact]
     public async Task WithNoServerRunningItSaysSoWithoutAnError()
     {
-        var provider = new AntigravityUsageProvider(find: () => Array.Empty<AntigravityServer>(), clock: () => Now);
+        var provider = new AntigravityUsageProvider(find: () => Array.Empty<AntigravityServer>(), clock: () => Now,
+            locateCli: NoCli);
 
         var snapshot = await provider.ReadAsync(CancellationToken.None);
 
@@ -168,7 +180,8 @@ public class AntigravityTests
                     _ => InUse,
                 });
             },
-            clock: () => Now);
+            clock: () => Now,
+            locateCli: NoCli);
 
         var snapshot = await provider.ReadAsync(CancellationToken.None);
 
@@ -187,11 +200,13 @@ public class AntigravityTests
         var empty = await new AntigravityUsageProvider(
             find: () => servers,
             ask: (_, _, _) => Task.FromResult<string?>("""{"response":{}}"""),
-            clock: () => Now).ReadAsync(CancellationToken.None);
+            clock: () => Now,
+            locateCli: NoCli).ReadAsync(CancellationToken.None);
         var silent = await new AntigravityUsageProvider(
             find: () => servers,
             ask: (_, _, _) => Task.FromResult<string?>(null),
-            clock: () => Now).ReadAsync(CancellationToken.None);
+            clock: () => Now,
+            locateCli: NoCli).ReadAsync(CancellationToken.None);
 
         Assert.Equal("antigravity-no-limits", empty.ErrorCode);
         Assert.Empty(empty.Windows);
@@ -211,11 +226,227 @@ public class AntigravityTests
                 return null;
             },
             clock: () => Now,
-            timeout: TimeSpan.FromMilliseconds(100));
+            timeout: TimeSpan.FromMilliseconds(100),
+            locateCli: NoCli);
 
         var snapshot = await provider.ReadAsync(CancellationToken.None);
 
         Assert.Equal(ConnectionState.Error, snapshot.ConnectionState);
         Assert.Equal("timeout", snapshot.ErrorCode);
+    }
+
+    [Fact]
+    public void TheCliUsageIsReadLikeTheServersReply()
+    {
+        var windows = AntigravityQuotaParser.ParseCliOutput(CliUsage)!;
+
+        Assert.Equal(
+            new[] { "gemini-weekly", "gemini-5h", "3p-weekly", "3p-5h", "gemini-argon-wtu-weekly" },
+            windows.Select(window => window.Id));
+        var gemini = windows[1];
+        Assert.Equal("gemini", gemini.GroupId);
+        Assert.Equal("Gemini", gemini.ScopeLabel);
+        Assert.Equal(2.73, gemini.UsedPercent!.Value, 2);
+        Assert.Equal(UsageSelection.FiveHourSeconds, gemini.DurationSeconds);
+        Assert.Equal(new DateTimeOffset(2026, 11, 17, 17, 44, 53, TimeSpan.Zero), gemini.ResetsAtUtc);
+
+        Assert.Equal("Claude and GPT", windows[3].ScopeLabel);
+        Assert.True(windows[3].NotStarted);
+        Assert.Null(windows[3].ResetsAtUtc);
+
+        var argon = windows[4];
+        Assert.Equal("gemini-argon-wtu", argon.GroupId);
+        Assert.Equal("Gemini 4 Argon", argon.ScopeLabel);
+        Assert.Equal(UsageSelection.WeeklySeconds, argon.DurationSeconds);
+    }
+
+    [Fact]
+    public void OnlyTheCliSummaryLineCountsAndAFailedRunHasNone()
+    {
+        Assert.Equal(5, AntigravityQuotaParser.ParseCliOutput("Fetching usage...\r\n" + CliUsage + "\r\nbye\r\n")!.Count);
+        Assert.Null(AntigravityQuotaParser.ParseCliOutput(CliSignedOut));
+        Assert.Null(AntigravityQuotaParser.ParseCliOutput(""));
+        Assert.Null(AntigravityQuotaParser.ParseCliOutput("""{"status":"SUCCESS"}"""));
+        Assert.Empty(AntigravityQuotaParser.ParseCliOutput("""{"status":"SUCCESS","command":{"name":"usage","data":{"groups":[]}}}""")!);
+    }
+
+    [Fact]
+    public async Task WithNothingOpenTheCliIsAsked()
+    {
+        string? ran = null;
+        var provider = new AntigravityUsageProvider(
+            find: () => Array.Empty<AntigravityServer>(),
+            clock: () => Now,
+            locateCli: () => @"C:\agy\bin\agy.exe",
+            runCli: (path, _) =>
+            {
+                ran = path;
+                return Task.FromResult<AntigravityCliOutput?>(new(CliUsage, ""));
+            });
+
+        var snapshot = await provider.ReadAsync(CancellationToken.None);
+
+        Assert.Equal(@"C:\agy\bin\agy.exe", ran);
+        Assert.Equal(ConnectionState.Ready, snapshot.ConnectionState);
+        Assert.Equal(SourceKind.AntigravityCli, snapshot.SourceKind);
+        Assert.Equal(Freshness.Fresh, snapshot.Freshness);
+        Assert.Equal(Now, snapshot.ObservedAtUtc);
+        Assert.Equal(5, snapshot.Windows.Count);
+    }
+
+    [Fact]
+    public async Task AnOpenAntigravityThatAnswersKeepsTheCliFromStarting()
+    {
+        var ran = false;
+        var servers = new[] { new AntigravityServer(10, false, new[] { 100 }, "code") };
+
+        var snapshot = await new AntigravityUsageProvider(
+            find: () => servers,
+            ask: (_, _, _) => Task.FromResult<string?>(InUse),
+            clock: () => Now,
+            locateCli: () => "agy.exe",
+            runCli: (_, _) =>
+            {
+                ran = true;
+                return Task.FromResult<AntigravityCliOutput?>(null);
+            }).ReadAsync(CancellationToken.None);
+
+        Assert.False(ran);
+        Assert.Equal(SourceKind.AntigravityLanguageServer, snapshot.SourceKind);
+        Assert.Equal(4, snapshot.Windows.Count);
+    }
+
+    [Fact]
+    public async Task AnOpenAntigravityThatDoesNotAnswerFallsBackToTheCli()
+    {
+        var servers = new[] { new AntigravityServer(10, false, new[] { 100 }, "code") };
+
+        var snapshot = await new AntigravityUsageProvider(
+            find: () => servers,
+            ask: (_, _, _) => Task.FromResult<string?>(null),
+            clock: () => Now,
+            locateCli: () => "agy.exe",
+            runCli: (_, _) => Task.FromResult<AntigravityCliOutput?>(new(CliUsage, ""))).ReadAsync(CancellationToken.None);
+
+        Assert.Equal(ConnectionState.Ready, snapshot.ConnectionState);
+        Assert.Equal(SourceKind.AntigravityCli, snapshot.SourceKind);
+        Assert.Equal(5, snapshot.Windows.Count);
+    }
+
+    [Fact]
+    public async Task OnlyACliThatSaysSoIsSignedOut()
+    {
+        Task<ProviderSnapshot> Read(AntigravityCliOutput? output) => new AntigravityUsageProvider(
+            find: () => Array.Empty<AntigravityServer>(),
+            clock: () => Now,
+            locateCli: () => "agy.exe",
+            runCli: (_, _) => Task.FromResult(output)).ReadAsync(CancellationToken.None);
+
+        var signedOut = await Read(new(CliSignedOut, "Error: authentication required. Run 'agy' to log in, then retry.\n"));
+        var timedOut = await Read(new(CliSignedOut, "error: authentication failed or timed out\n"));
+        var notStarted = await Read(null);
+        var noLimits = await Read(new("""{"status":"SUCCESS","command":{"data":{"groups":[]}}}""", ""));
+
+        Assert.Equal(ConnectionState.SignInRequired, signedOut.ConnectionState);
+        Assert.Equal("antigravity-cli-signed-out", signedOut.ErrorCode);
+        Assert.Empty(signedOut.Windows);
+        Assert.Equal(ConnectionState.Error, timedOut.ConnectionState);
+        Assert.Equal("antigravity-cli-failed", timedOut.ErrorCode);
+        Assert.Equal("antigravity-cli-failed", notStarted.ErrorCode);
+        Assert.Equal(ConnectionState.Ready, noLimits.ConnectionState);
+        Assert.Equal("antigravity-no-limits", noLimits.ErrorCode);
+    }
+
+    [Fact]
+    public async Task ASlowCliIsCancelledAndEndsInATimeout()
+    {
+        var cancelled = false;
+        var provider = new AntigravityUsageProvider(
+            find: () => Array.Empty<AntigravityServer>(),
+            clock: () => Now,
+            locateCli: () => "agy.exe",
+            runCli: async (_, token) =>
+            {
+                try
+                {
+                    await Task.Delay(Timeout.Infinite, token);
+                }
+                catch (OperationCanceledException)
+                {
+                    cancelled = true;
+                    throw;
+                }
+
+                return null;
+            },
+            cliTimeout: TimeSpan.FromMilliseconds(100));
+
+        var snapshot = await provider.ReadAsync(CancellationToken.None);
+
+        Assert.True(cancelled);
+        Assert.Equal(ConnectionState.Error, snapshot.ConnectionState);
+        Assert.Equal("timeout", snapshot.ErrorCode);
+        Assert.Equal(SourceKind.AntigravityCli, snapshot.SourceKind);
+    }
+
+    [Fact]
+    public async Task TheCliIsAskedForUsageInJsonWithoutUpdatingItself()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var temp = new TempDirectory();
+        var agy = temp.Combine("agy.cmd");
+        File.WriteAllText(agy, "@echo off\r\necho args=%*\r\necho update=%AGY_CLI_DISABLE_AUTO_UPDATE%\r\necho cwd=%CD%\r\necho oops 1>&2\r\n");
+
+        var output = await AntigravityCli.RunUsageAsync(agy, TimeSpan.FromSeconds(15), temp.Path, CancellationToken.None);
+
+        Assert.NotNull(output);
+        Assert.Contains("args=-p /usage --output-format json --print-timeout 15s", output.StandardOutput);
+        Assert.Contains("update=true", output.StandardOutput);
+        Assert.Contains("cwd=" + temp.Path, output.StandardOutput);
+        Assert.Contains("oops", output.StandardError);
+    }
+
+    [Fact]
+    public async Task ACancelledRunEndsWhatItStarted()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var temp = new TempDirectory();
+        var folder = temp.Combine("run");
+        Directory.CreateDirectory(folder);
+        var agy = temp.Combine("agy.cmd");
+        File.WriteAllText(agy, "@echo off\r\nping -n 60 127.0.0.1 >nul\r\n");
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => AntigravityCli.RunUsageAsync(agy, TimeSpan.FromSeconds(15), folder, cancel.Token));
+
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10));
+
+        // cmd and ping both ran in the folder; Windows will not delete it
+        // while either is still alive.
+        var deleted = false;
+        for (var attempt = 0; attempt < 50 && !deleted; attempt++)
+        {
+            try
+            {
+                Directory.Delete(folder);
+                deleted = true;
+            }
+            catch (IOException)
+            {
+                await Task.Delay(100);
+            }
+        }
+
+        Assert.True(deleted);
     }
 }

@@ -9,7 +9,8 @@ namespace OrbMet.Core.Usage;
 /// Which providers this machine has and which the strip shows (design.md
 /// 4.4). Codex is here when its CLI is on PATH; Claude Code when its CLI is,
 /// or its settings folder exists; Antigravity when Antigravity or Antigravity
-/// IDE is installed for this user. Only file and folder existence is checked.
+/// IDE is installed for this user, or the Antigravity CLI is. Only file and
+/// folder existence is checked.
 /// </summary>
 public static class ProviderPresence
 {
@@ -29,7 +30,7 @@ public static class ProviderPresence
             found.Add(ProviderId.Codex);
         }
 
-        if (AntigravityServers.Installed())
+        if (AntigravityServers.Installed() || AntigravityCli.Locate() is not null)
         {
             found.Add(ProviderId.Antigravity);
         }

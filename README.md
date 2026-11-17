@@ -28,10 +28,11 @@ starts to matter: green below 50%, yellow below 75%, red above.
 - Shows only the providers you have: with Claude Code alone you see one
   ring. A provider you install later appears by itself; one you have but do
   not want can be hidden under **Appearance**, and is then not read at all.
-- Antigravity (or Antigravity IDE) gets a ring of its own when it is
-  installed: its Gemini and its Claude and GPT allowances, each with a 5-hour
-  and a weekly limit, with the fuller group on the ring. These figures exist
-  only inside Antigravity, so they are read while it is open.
+- Antigravity (Antigravity, Antigravity IDE or the Antigravity CLI) gets a
+  ring of its own when it is installed: its Gemini and its Claude and GPT
+  allowances, each with a 5-hour and a weekly limit, with the fuller group on
+  the ring. With the CLI installed they are read at any time; without it,
+  while Antigravity is open.
 - A thin outer arc shows how much of the limit's window has passed, so you
   can see at a glance whether you are ahead of the clock.
 - Under **Appearance**: show what is left instead of what is used, pick each
@@ -69,7 +70,7 @@ starts to matter: green below 50%, yellow below 75%, red above.
 
 - Windows 10 or 11, x64
 - [Claude Code](https://docs.claude.com/en/docs/claude-code) in the terminal, [Codex CLI](https://github.com/openai/codex), or both
-- Optionally [Antigravity](https://antigravity.google) or Antigravity IDE
+- Optionally [Antigravity](https://antigravity.google), Antigravity IDE or the Antigravity CLI
 
 ## Install
 
@@ -129,15 +130,23 @@ response. Good to know:
 
 ### Antigravity
 
-Nothing to set up. Antigravity keeps its limits in a small server of its own
-that runs while Antigravity is open, listening only on your own computer
-(`127.0.0.1`). OrbMet finds that server, asks it for the quota summary every
-two minutes and when you click the ring, and shows **Read while Antigravity is
-open** when it is closed. Until you use a limit, its card line says **Not
-started yet**: Antigravity has no reset time for it then.
+Nothing to set up. OrbMet checks every two minutes and when you click the
+ring:
 
-The address `RetrieveUserQuotaSummary` that OrbMet asks is Antigravity's own,
-not a documented API, so a new Antigravity version could change it.
+- While Antigravity or Antigravity IDE is open, it asks the small server
+  Antigravity runs for itself, listening only on your own computer
+  (`127.0.0.1`).
+- Otherwise, if the [Antigravity CLI](https://antigravity.google) (`agy`) is
+  installed, it runs `agy -p /usage --output-format json`, the CLI's own usage
+  command, in a hidden window. It makes no model request, starts no
+  conversation and uses no quota. If the CLI isn't signed in, the card says so.
+- With neither, the card says **Read while Antigravity is open**.
+
+Until you use a limit, its card line says **Not started yet**: Antigravity has
+no reset time for it then.
+
+Neither the server's `RetrieveUserQuotaSummary` address nor the CLI's JSON
+output is a documented API, so a new Antigravity version could change them.
 
 <p align="center"><img src="docs/antigravity.png" width="378" alt="The Antigravity card: a 5-hour and a weekly limit for Gemini and for Claude and GPT, the unused one saying Not started yet"></p>
 
@@ -162,7 +171,9 @@ request of its own is the update check:
   kept in memory. To be let in, OrbMet reads the one-time code Antigravity
   gives that server when it starts (on the server's command line) and sends
   it back to that server only. The code is not your Google sign-in, changes
-  every time Antigravity starts, and is never stored or logged.
+  every time Antigravity starts, and is never stored or logged. Through the
+  CLI, OrbMet reads only what `agy`'s usage command prints, and the CLI uses
+  its own sign-in.
 - Account credentials are never read. Prompts and transcripts are never stored.
 - Transcripts are read only if you turn on **Show when an agent is working**
   (off by default). Then, every few seconds, OrbMet opens the last 128 KB of

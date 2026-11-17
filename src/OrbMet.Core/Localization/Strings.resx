@@ -115,10 +115,13 @@
   </data>
   <data name="AntigravityNotRunning" xml:space="preserve">
     <value>Read while Antigravity is open.</value>
-    <comment>Antigravity's quotas are only known to its running language server.</comment>
+    <comment>Without the Antigravity CLI, Antigravity's quotas are only known to its running language server.</comment>
   </data>
   <data name="AntigravityNotAnswering" xml:space="preserve">
     <value>Antigravity is open but isn't answering.</value>
+  </data>
+  <data name="AntigravityCliSignIn" xml:space="preserve">
+    <value>The Antigravity CLI isn't signed in. Run agy in a terminal to sign in.</value>
   </data>
   <data name="NotStarted" xml:space="preserve">
     <value>Not started yet</value>

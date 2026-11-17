@@ -5,10 +5,12 @@ using OrbMet.Core.Models;
 namespace OrbMet.Core.Providers.Antigravity;
 
 /// <summary>
-/// Maps the language server's RetrieveUserQuotaSummary reply onto the shared
-/// usage model. The reply says what is left (<c>remainingFraction</c> 1 is
-/// nothing used) in groups of buckets, each with its own window; a bucket
-/// whose window or figure cannot be read keeps no invented value.
+/// Maps Antigravity's quota groups onto the shared usage model: the language
+/// server's RetrieveUserQuotaSummary reply (<c>response.groups</c>, camelCase)
+/// or the CLI's <c>/usage</c> JSON (<c>command.data.groups</c>, snake_case).
+/// Both say what is left (a remaining fraction of 1 is nothing used) in
+/// groups of buckets, each with its own window; a bucket whose window or
+/// figure cannot be read keeps no invented value.
 /// </summary>
 public static class AntigravityQuotaParser
 {
@@ -30,15 +32,13 @@ public static class AntigravityQuotaParser
 
         using (document)
         {
-            if (document.RootElement.ValueKind != JsonValueKind.Object ||
-                !document.RootElement.TryGetProperty("response", out var response) ||
-                response.ValueKind != JsonValueKind.Object)
+            if (Holder(document.RootElement) is not { } holder)
             {
                 return null;
             }
 
             var windows = new List<UsageWindow>();
-            if (!response.TryGetProperty("groups", out var groups) || groups.ValueKind != JsonValueKind.Array)
+            if (!holder.TryGetProperty("groups", out var groups) || groups.ValueKind != JsonValueKind.Array)
             {
                 return windows;
             }
@@ -52,7 +52,7 @@ public static class AntigravityQuotaParser
                     continue;
                 }
 
-                var scope = Scope(Text(group, "displayName"));
+                var scope = Scope(Text(group, "displayName") ?? Text(group, "name"));
                 foreach (var bucket in buckets.EnumerateArray())
                 {
                     if (Window(bucket, scope) is { } window)
@@ -66,25 +66,71 @@ public static class AntigravityQuotaParser
         }
     }
 
+    /// <summary>
+    /// The windows in what <c>agy -p /usage --output-format json</c> printed:
+    /// the last line that is a quota summary, since log lines may surround
+    /// it. Null when none is, as when the CLI reports an error.
+    /// </summary>
+    public static IReadOnlyList<UsageWindow>? ParseCliOutput(string output)
+    {
+        var lines = output.Split('\n');
+        for (var index = lines.Length - 1; index >= 0; index--)
+        {
+            var line = lines[index].Trim();
+            if (line.StartsWith('{') && Parse(line) is { } windows)
+            {
+                return windows;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The object holding the groups, or null when the document is not a quota summary.</summary>
+    private static JsonElement? Holder(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        // The language server's reply.
+        if (root.TryGetProperty("response", out var response) && response.ValueKind == JsonValueKind.Object)
+        {
+            return response;
+        }
+
+        // The CLI's, whose "response" is the same table as text; one that
+        // failed says so in "status".
+        if (Text(root, "status") is { } status && !status.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return root.TryGetProperty("command", out var command) && command.ValueKind == JsonValueKind.Object &&
+               command.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object
+            ? data
+            : null;
+    }
+
     private static UsageWindow? Window(JsonElement bucket, string? scope)
     {
         if (bucket.ValueKind != JsonValueKind.Object ||
-            Text(bucket, "bucketId") is not { } id ||
+            (Text(bucket, "bucketId") ?? Text(bucket, "id")) is not { } id ||
             Length(Text(bucket, "window")) is not { } seconds)
         {
             return null;
         }
 
         // A missing figure stays missing: neither nothing used nor all of it.
-        double? remaining = bucket.TryGetProperty("remainingFraction", out var fraction) && fraction.ValueKind == JsonValueKind.Number
-            ? fraction.GetDouble()
-            : null;
+        double? remaining = Number(bucket, "remainingFraction") ?? Number(bucket, "remaining_fraction");
 
         // While nothing is used the server sends "now plus the window" as the
-        // reset, moving on every read (measured 2026-10-15), so it is not one.
+        // reset, moving on every read (measured 2026-10-15, and from the CLI
+        // 2026-11-17), so it is not one.
         var notStarted = remaining >= 1;
         DateTimeOffset? resetsAt = !notStarted &&
-            Text(bucket, "resetTime") is { } reset &&
+            (Text(bucket, "resetTime") ?? Text(bucket, "reset_time")) is { } reset &&
             DateTimeOffset.TryParse(reset, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
                 ? parsed.ToUniversalTime()
                 : null;
@@ -143,6 +189,9 @@ public static class AntigravityQuotaParser
                 return null;
         }
     }
+
+    private static double? Number(JsonElement element, string name) =>
+        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetDouble() : null;
 
     private static string? Text(JsonElement element, string name) =>
         element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String && value.GetString() is { Length: > 0 } text

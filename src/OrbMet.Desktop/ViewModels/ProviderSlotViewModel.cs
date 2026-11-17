@@ -347,9 +347,12 @@ public sealed class ProviderSlotViewModel : ObservableObject
             case ConnectionState.MissingTool:
                 return words.Format("NotFoundFormat", DisplayName);
             case ConnectionState.SignInRequired:
-                return ProviderId == ProviderId.Codex
-                    ? words["CodexSignInRequired"]
-                    : words["SignInRequired"];
+                return ProviderId switch
+                {
+                    ProviderId.Codex => words["CodexSignInRequired"],
+                    ProviderId.Antigravity => words["AntigravityCliSignIn"],
+                    _ => words["SignInRequired"],
+                };
             case ConnectionState.Unsupported:
                 return words["Unsupported"];
             case ConnectionState.Error when snapshot.ErrorCode == "antigravity-not-answering":

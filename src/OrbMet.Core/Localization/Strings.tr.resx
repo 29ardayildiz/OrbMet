@@ -108,6 +108,9 @@
   <data name="AntigravityNotAnswering" xml:space="preserve">
     <value>Antigravity açık ama yanıt vermiyor.</value>
   </data>
+  <data name="AntigravityCliSignIn" xml:space="preserve">
+    <value>Antigravity CLI'da oturum açılmamış. Terminalde agy çalıştırıp giriş yap.</value>
+  </data>
   <data name="NotStarted" xml:space="preserve">
     <value>Henüz başlamadı</value>
   </data>
